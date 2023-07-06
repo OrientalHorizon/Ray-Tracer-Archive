@@ -9,24 +9,18 @@ mod vec3;
 use ray::Ray;
 use vec3::{Color3, Point3, Vec3};
 
-pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
+pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> bool {
     let oc: Vec3 = r.origin() - *center;
     let a: f64 = r.direction().length_squared();
     let b: f64 = 2.0 * vec3::dot(&oc, &r.direction());
     let c: f64 = oc.length_squared() - radius * radius;
     let det: f64 = b * b - 4.0 * a * c;
-    if det < 0.0 {
-        -1.0
-    } else {
-        (-b - det.sqrt()) / (2.0 * a)
-    }
+    det > 0.0
 }
 
 pub fn ray_color(r: &Ray) -> Color3 {
-    let res = hit_sphere(&Point3::construct(&[0.0, 0.0, -1.0]), &0.5, r);
-    if res > 0.0 {
-        let n: Vec3 = (r.at(res) - Vec3::construct(&[0.0, 0.0, -1.0])).unit();
-        return 0.5 * Color3::construct(&[n.x() + 1.0, n.y() + 1.0, n.z() + 1.0]);
+    if hit_sphere(&Point3::construct(&[0.0, 0.0, -1.0]), &0.5, r) {
+        return Color3::construct(&[1.0, 0.0, 0.0]);
     }
     let unit_direction = r.direction.unit();
     let t: f64 = 0.5 * (unit_direction.y() + 1.0);
@@ -34,7 +28,7 @@ pub fn ray_color(r: &Ray) -> Color3 {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image4.jpg");
+    let path = std::path::Path::new("output/book1/image3.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -66,7 +60,7 @@ fn main() {
 
     for j in (0..image_height).rev() {
         for i in 0..image_width {
-            let pixel = img.get_pixel_mut(i, image_height - j - 1);
+            let pixel = img.get_pixel_mut(i, j);
             let u: f64 = (i as f64) / ((image_width - 1) as f64);
             let v: f64 = (j as f64) / ((image_height - 1) as f64);
             let r: Ray = Ray::construct(
