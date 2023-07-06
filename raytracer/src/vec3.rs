@@ -1,5 +1,5 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::fmt;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3 {
@@ -11,7 +11,9 @@ impl Vec3 {
         Self { e: [0.0, 0.0, 0.0] }
     }
     pub fn construct(t: &[f64]) -> Self {
-        Self { e: [t[0], t[1], t[2]] }
+        Self {
+            e: [t[0], t[1], t[2]],
+        }
     }
     pub fn near_zero(&self) -> bool {
         let s = 1e-8;
@@ -36,9 +38,7 @@ impl Vec3 {
         self.e[2]
     }
     pub fn dot(&self, other: &Self) -> f64 {
-        self.e[0] * other.e[0] +
-            self.e[1] * other.e[1] +
-            self.e[2] * other.e[2]
+        self.e[0] * other.e[0] + self.e[1] * other.e[1] + self.e[2] * other.e[2]
     }
     pub fn cross(&self, other: &Self) -> Self {
         Self {
@@ -49,7 +49,7 @@ impl Vec3 {
             ],
         }
     }
-    pub fn to_rgb(&self) -> [u8; 3] {
+    pub fn rgb(&self) -> [u8; 3] {
         [
             (255.999 * self.e[0]) as u8,
             (255.999 * self.e[1]) as u8,
@@ -67,7 +67,7 @@ impl Add<Vec3> for Vec3 {
                 self.e[0] + other.e[0],
                 self.e[1] + other.e[1],
                 self.e[2] + other.e[2],
-            ]
+            ],
         }
     }
 }
@@ -81,7 +81,7 @@ impl Sub<Vec3> for Vec3 {
                 self.e[0] - other.e[0],
                 self.e[1] - other.e[1],
                 self.e[2] - other.e[2],
-            ]
+            ],
         }
     }
 }
@@ -96,7 +96,7 @@ impl Mul<Vec3> for Vec3 {
                 self.e[0] * other.e[0],
                 self.e[1] * other.e[1],
                 self.e[2] * other.e[2],
-            ]
+            ],
         }
     }
 }
@@ -107,11 +107,7 @@ impl Mul<f64> for Vec3 {
 
     fn mul(self, other: f64) -> Self {
         Self {
-            e: [
-                self.e[0] * other,
-                self.e[1] * other,
-                self.e[2] * other,
-            ]
+            e: [self.e[0] * other, self.e[1] * other, self.e[2] * other],
         }
     }
 }
@@ -122,11 +118,7 @@ impl Mul<Vec3> for f64 {
 
     fn mul(self, other: Vec3) -> Vec3 {
         Vec3 {
-            e: [
-                other.e[0] * self,
-                other.e[1] * self,
-                other.e[2] * self,
-            ]
+            e: [other.e[0] * self, other.e[1] * self, other.e[2] * self],
         }
     }
 }
@@ -137,11 +129,7 @@ impl Div<f64> for Vec3 {
 
     fn div(self, other: f64) -> Self {
         Self {
-            e: [
-                self.e[0] / other,
-                self.e[1] / other,
-                self.e[2] / other,
-            ]
+            e: [self.e[0] / other, self.e[1] / other, self.e[2] / other],
         }
     }
 }
@@ -157,11 +145,7 @@ impl Neg for Vec3 {
 
     fn neg(self) -> Self {
         Self {
-            e: [
-                -self.e[0],
-                -self.e[1],
-                -self.e[2],
-            ]
+            e: [-self.e[0], -self.e[1], -self.e[2]],
         }
     }
 }

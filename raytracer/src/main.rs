@@ -1,13 +1,13 @@
-use console::{style};
+use console::style;
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
 use std::{fs::File, process::exit};
 
-mod vec3;
 mod ray;
+mod vec3;
 
-use vec3::{Vec3, Point3, Color3};
 use ray::Ray;
+use vec3::{Color3, Point3, Vec3};
 
 fn main() {
     let path = std::path::Path::new("output/book1/image2.jpg");
@@ -27,7 +27,8 @@ fn main() {
     let origin: Point3 = Point3::construct(&[0.0, 0.0, 0.0]);
     let horizontal: Vec3 = Vec3::construct(&[viewport_width, 0.0, 0.0]);
     let vertical: Vec3 = Vec3::construct(&[0.0, viewport_height, 0.0]);
-    let lower_left_corner: Vec3 = origin - horizontal / 2.0 - vertical / 2.0 - Vec3::construct(&[0.0, 0.0, focal_length]);
+    let lower_left_corner: Vec3 =
+        origin - horizontal / 2.0 - vertical / 2.0 - Vec3::construct(&[0.0, 0.0, focal_length]);
 
     // Render
     let quality = 100;
@@ -44,9 +45,12 @@ fn main() {
             let pixel = img.get_pixel_mut(i, j);
             let u: f64 = (i as f64) / ((image_width - 1) as f64);
             let v: f64 = (j as f64) / ((image_height - 1) as f64);
-            let r: Ray = Ray::construct(&origin, &(lower_left_corner + horizontal * u + vertical * v - origin));
+            let r: Ray = Ray::construct(
+                &origin,
+                &(lower_left_corner + horizontal * u + vertical * v - origin),
+            );
             let pixel_color: Color3 = r.ray_color();
-            let rgb: [u8; 3] = pixel_color.to_rgb();
+            let rgb: [u8; 3] = pixel_color.rgb();
             *pixel = image::Rgb(rgb);
         }
         progress.inc(1);

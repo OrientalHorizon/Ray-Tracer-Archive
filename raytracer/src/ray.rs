@@ -1,6 +1,6 @@
-use crate::vec3::Vec3;
-use crate::vec3::Point3;
 use crate::vec3::Color3;
+use crate::vec3::Point3;
+use crate::vec3::Vec3;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Ray {
