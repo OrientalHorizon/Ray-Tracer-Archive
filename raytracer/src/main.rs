@@ -9,8 +9,26 @@ mod vec3;
 use ray::Ray;
 use vec3::{Color3, Point3, Vec3};
 
+pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> bool {
+    let oc: Vec3 = r.origin() - *center;
+    let a: f64 = r.direction().length_squared();
+    let b: f64 = 2.0 * vec3::dot(&oc, &r.direction());
+    let c: f64 = oc.length_squared() - radius * radius;
+    let det: f64 = b * b - 4.0 * a * c;
+    det > 0.0
+}
+
+pub fn ray_color(r: &Ray) -> Color3 {
+    if hit_sphere(&Point3::construct(&[0.0, 0.0, -1.0]), &0.5, r) {
+        return Color3::construct(&[1.0, 0.0, 0.0]);
+    }
+    let unit_direction = r.direction.unit();
+    let t: f64 = 0.5 * (unit_direction.y() + 1.0);
+    Color3::construct(&[1.0, 1.0, 1.0]) * (1.0 - t) + Color3::construct(&[0.5, 0.7, 1.0]) * t
+}
+
 fn main() {
-    let path = std::path::Path::new("output/book1/image2.jpg");
+    let path = std::path::Path::new("output/book1/image3.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -49,7 +67,7 @@ fn main() {
                 &origin,
                 &(lower_left_corner + horizontal * u + vertical * v - origin),
             );
-            let pixel_color: Color3 = r.ray_color();
+            let pixel_color: Color3 = ray_color(&r);
             let rgb: [u8; 3] = pixel_color.rgb();
             *pixel = image::Rgb(rgb);
         }

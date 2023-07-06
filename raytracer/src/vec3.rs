@@ -37,18 +37,6 @@ impl Vec3 {
     pub fn z(&self) -> f64 {
         self.e[2]
     }
-    pub fn dot(&self, other: &Self) -> f64 {
-        self.e[0] * other.e[0] + self.e[1] * other.e[1] + self.e[2] * other.e[2]
-    }
-    pub fn cross(&self, other: &Self) -> Self {
-        Self {
-            e: [
-                self.e[1] * other.e[2] - self.e[2] * other.e[1],
-                -(self.e[0] * other.e[2] - self.e[2] * other.e[0]),
-                self.e[0] * other.e[1] - self.e[1] * other.e[0],
-            ],
-        }
-    }
     pub fn rgb(&self) -> [u8; 3] {
         [
             (255.999 * self.e[0]) as u8,
@@ -57,6 +45,20 @@ impl Vec3 {
         ]
     }
 }
+
+pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
+    u.e[0] * v.e[0] + u.e[1] * v.e[1] + u.e[2] * v.e[2]
+}
+
+// pub fn cross(u: &Vec3, v: &Vec3) -> Vec3 {
+//     Vec3 {
+//         e: [
+//             u.e[1] * v.e[2] - u.e[2] * v.e[1],
+//             -(u.e[0] * v.e[2] - u.e[2] * v.e[0]),
+//             u.e[0] * v.e[1] - u.e[1] * v.e[0],
+//         ],
+//     }
+// }
 
 impl Add<Vec3> for Vec3 {
     type Output = Self;
