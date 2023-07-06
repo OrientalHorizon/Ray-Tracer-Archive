@@ -1,39 +1,60 @@
-use console::style;
+use console::{style};
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
 use std::{fs::File, process::exit};
 
+mod vec3;
+mod ray;
+
+use vec3::{Vec3, Point3, Color3};
+use ray::Ray;
+
 fn main() {
-    let path = std::path::Path::new("output/book1/image1.jpg");
+    let path = std::path::Path::new("output/book1/image2.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
-    let width = 256;
-    let height = 256;
+    // Image
+    let aspect_ratio: f64 = 16.0 / 9.0;
+    let image_width: u32 = 400;
+    let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
+
+    // Camera
+    let viewport_height: f64 = 2.0;
+    let viewport_width: f64 = aspect_ratio * viewport_height;
+    let focal_length: f64 = 1.0;
+
+    let origin: Point3 = Point3::construct(&[0.0, 0.0, 0.0]);
+    let horizontal: Vec3 = Vec3::construct(&[viewport_width, 0.0, 0.0]);
+    let vertical: Vec3 = Vec3::construct(&[0.0, viewport_height, 0.0]);
+    let lower_left_corner: Vec3 = origin - horizontal / 2.0 - vertical / 2.0 - Vec3::construct(&[0.0, 0.0, focal_length]);
+
+    // Render
     let quality = 100;
-    let mut img: RgbImage = ImageBuffer::new(width, height);
+    let mut img: RgbImage = ImageBuffer::new(image_width, image_height);
 
     let progress = if option_env!("CI").unwrap_or_default() == "true" {
         ProgressBar::hidden()
     } else {
-        ProgressBar::new((height * width) as u64)
+        ProgressBar::new((image_height * image_width) as u64)
     };
 
-    for j in (0..height).rev() {
-        for i in 0..width {
-            let pixel = img.get_pixel_mut(i, height - j - 1);
-
-            let r: f64 = (i as f64) / ((width - 1) as f64) * 255.999;
-            let g: f64 = (j as f64) / ((height - 1) as f64) * 255.999;
-            let b: f64 = 0.25 * 255.999;
-            *pixel = image::Rgb([r as u8, g as u8, b as u8]);
+    for j in (0..image_height).rev() {
+        for i in 0..image_width {
+            let pixel = img.get_pixel_mut(i, j);
+            let u: f64 = (i as f64) / ((image_width - 1) as f64);
+            let v: f64 = (j as f64) / ((image_height - 1) as f64);
+            let r: Ray = Ray::construct(&origin, &(lower_left_corner + horizontal * u + vertical * v - origin));
+            let pixel_color: Color3 = r.ray_color();
+            let rgb: [u8; 3] = pixel_color.to_rgb();
+            *pixel = image::Rgb(rgb);
         }
         progress.inc(1);
     }
     progress.finish();
 
     println!(
-        "Ouput image as \"{}\"",
+        "Output image as \"{}\"",
         style(path.to_str().unwrap()).yellow()
     );
     let output_image = image::DynamicImage::ImageRgb8(img);
