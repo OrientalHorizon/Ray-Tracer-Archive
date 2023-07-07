@@ -54,9 +54,9 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 
     // Divide the color by the number of samples.
     let scale: f64 = 1.0 / samples_per_pixel as f64;
-    r *= scale;
-    g *= scale;
-    b *= scale;
+    r = (scale * r).sqrt();
+    g = (scale * g).sqrt();
+    b = (scale * b).sqrt();
 
     // Write the translated [0,255] value of each color component.
     [
@@ -67,7 +67,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image7.jpg");
+    let path = std::path::Path::new("output/book1/image8.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
