@@ -7,19 +7,20 @@ use std::{fs::File, process::exit};
 mod camera;
 mod hittable;
 mod hittable_list;
+mod material;
 mod ray;
 mod rt_weekend;
 mod sphere;
 mod vec3;
-mod material;
 
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
+use material::{Lambertian, Metal};
 use ray::Ray;
 use rt_weekend::random_double;
 use sphere::Sphere;
-use vec3::{random_unit_vector, Color3, Point3, Vec3};
+use vec3::{Color3, Point3, Vec3};
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -40,9 +41,19 @@ pub fn ray_color(r: &Ray, world: &mut dyn Hittable, depth: i32) -> Color3 {
         return Color3::new();
     }
     if world.hit(r, 0.001, f64::INFINITY, &mut rec) {
-        let target: Point3 = rec.p + rec.normal + random_unit_vector();
-        return 0.5 * ray_color(&Ray::construct(&rec.p, &(target - rec.p)), world, depth - 1);
+        let mut scattered: Ray = Ray::new();
+        let mut attenuation: Color3 = Color3::new();
+        if rec
+            .mat_ptr
+            .as_ref()
+            .unwrap()
+            .scatter(r, &rec, &mut attenuation, &mut scattered)
+        {
+            return attenuation * ray_color(&scattered, world, depth - 1);
+        }
+        return Color3::construct(&[0.0, 0.0, 0.0]);
     }
+
     let unit_direction = r.direction.unit();
     let t: f64 = 0.5 * (unit_direction.y() + 1.0);
     Color3::construct(&[1.0, 1.0, 1.0]) * (1.0 - t) + Color3::construct(&[0.5, 0.7, 1.0]) * t
@@ -68,7 +79,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image9.jpg");
+    let path = std::path::Path::new("output/book1/image11.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -81,20 +92,30 @@ fn main() {
     let max_depth: i32 = 50;
 
     // World
-    let mut world: HittableList = HittableList::new();
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[0.0, 0.0, -1.0]),
-        0.5,
-        Rc::new(material::Lambertian::construct(
-            &Color3::construct(&[0.1, 0.2, 0.5]),
-        )),
-    )));
+    let mut world = HittableList::new();
+    let material_ground = Rc::new(Lambertian::construct(&Color3::construct(&[0.8, 0.8, 0.0])));
+    let material_center = Rc::new(Lambertian::construct(&Color3::construct(&[0.7, 0.3, 0.3])));
+    let material_left = Rc::new(Metal::construct(&Color3::construct(&[0.8, 0.8, 0.8])));
+    let material_right = Rc::new(Metal::construct(&Color3::construct(&[0.8, 0.6, 0.2])));
     world.add(Rc::new(Sphere::construct(
         &Point3::construct(&[0.0, -100.5, -1.0]),
         100.0,
-        Rc::new(material::Lambertian::construct(
-            &Color3::construct(&[0.1, 0.2, 0.5]),
-        )),
+        material_ground,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, 0.0, -1.0]),
+        0.5,
+        material_center,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[-1.0, 0.0, -1.0]),
+        0.5,
+        material_left,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[1.0, 0.0, -1.0]),
+        0.5,
+        material_right,
     )));
 
     // Camera
