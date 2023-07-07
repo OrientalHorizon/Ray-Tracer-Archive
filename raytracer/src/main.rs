@@ -80,7 +80,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image19.jpg");
+    let path = std::path::Path::new("output/book1/image20.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -126,12 +126,20 @@ fn main() {
     )));
 
     // Camera
+    let lookfrom: Point3 = Point3::construct(&[3.0, 3.0, 2.0]);
+    let lookat: Point3 = Point3::construct(&[0.0, 0.0, -1.0]);
+    let vup: Vec3 = Vec3::construct(&[0.0, 1.0, 0.0]);
+    let dist_to_focus: f64 = (lookfrom - lookat).length();
+    let aperture: f64 = 2.0;
+
     let cam: Camera = Camera::new(
-        &Point3::construct(&[-2.0, 2.0, 1.0]),
-        &Point3::construct(&[0.0, 0.0, -1.0]),
-        &Vec3::construct(&[0.0, 1.0, 0.0]),
+        &lookfrom,
+        &lookat,
+        &vup,
         20.0,
         aspect_ratio,
+        aperture,
+        dist_to_focus,
     );
 
     // Render
