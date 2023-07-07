@@ -79,7 +79,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image15.jpg");
+    let path = std::path::Path::new("output/book1/image16.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -110,6 +110,11 @@ fn main() {
     world.add(Rc::new(Sphere::construct(
         &Point3::construct(&[-1.0, 0.0, -1.0]),
         0.5,
+        material_left.clone(),
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[-1.0, 0.0, -1.0]),
+        -0.4,
         material_left,
     )));
     world.add(Rc::new(Sphere::construct(
