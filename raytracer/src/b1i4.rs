@@ -1,19 +1,12 @@
 use console::style;
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
-use std::rc::Rc;
 use std::{fs::File, process::exit};
 
-mod hittable;
-mod hittable_list;
 mod ray;
-mod sphere;
 mod vec3;
 
-use hittable::{HitRecord, Hittable};
-use hittable_list::HittableList;
 use ray::Ray;
-use sphere::Sphere;
 use vec3::{Color3, Point3, Vec3};
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
@@ -29,10 +22,11 @@ pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     }
 }
 
-pub fn ray_color(r: &Ray, world: &mut dyn Hittable) -> Color3 {
-    let mut rec: HitRecord = HitRecord::new();
-    if world.hit(r, 0.0, f64::INFINITY, &mut rec) {
-        return 0.5 * (rec.normal + Color3::construct(&[1.0, 1.0, 1.0]));
+pub fn ray_color(r: &Ray) -> Color3 {
+    let res = hit_sphere(&Point3::construct(&[0.0, 0.0, -1.0]), &0.5, r);
+    if res > 0.0 {
+        let n: Vec3 = (r.at(res) - Vec3::construct(&[0.0, 0.0, -1.0])).unit();
+        return 0.5 * Color3::construct(&[n.x() + 1.0, n.y() + 1.0, n.z() + 1.0]);
     }
     let unit_direction = r.direction.unit();
     let t: f64 = 0.5 * (unit_direction.y() + 1.0);
@@ -40,8 +34,7 @@ pub fn ray_color(r: &Ray, world: &mut dyn Hittable) -> Color3 {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image5.jpg");
-    // 青天蓝日满地绿
+    let path = std::path::Path::new("output/book1/image4.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -49,17 +42,6 @@ fn main() {
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: u32 = 400;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-
-    // World
-    let mut world: HittableList = HittableList::new();
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[0.0, 0.0, -1.0]),
-        0.5,
-    )));
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[0.0, -100.5, -1.0]),
-        100.0,
-    )));
 
     // Camera
     let viewport_height: f64 = 2.0;
@@ -91,7 +73,7 @@ fn main() {
                 &origin,
                 &(lower_left_corner + horizontal * u + vertical * v - origin),
             );
-            let pixel_color: Color3 = ray_color(&r, &mut world);
+            let pixel_color: Color3 = ray_color(&r);
             let rgb: [u8; 3] = pixel_color.rgb();
             *pixel = image::Rgb(rgb);
         }
