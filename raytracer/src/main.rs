@@ -4,15 +4,19 @@ use indicatif::ProgressBar;
 use std::rc::Rc;
 use std::{fs::File, process::exit};
 
+mod camera;
 mod hittable;
 mod hittable_list;
 mod ray;
+mod rt_weekend;
 mod sphere;
 mod vec3;
 
+use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
 use ray::Ray;
+use rt_weekend::random_double;
 use sphere::Sphere;
 use vec3::{Color3, Point3, Vec3};
 
@@ -39,8 +43,27 @@ pub fn ray_color(r: &Ray, world: &mut dyn Hittable) -> Color3 {
     Color3::construct(&[1.0, 1.0, 1.0]) * (1.0 - t) + Color3::construct(&[0.5, 0.7, 1.0]) * t
 }
 
+pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
+    let mut r: f64 = pixel_color.x();
+    let mut g: f64 = pixel_color.y();
+    let mut b: f64 = pixel_color.z();
+
+    // Divide the color by the number of samples.
+    let scale: f64 = 1.0 / samples_per_pixel as f64;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    // Write the translated [0,255] value of each color component.
+    [
+        (256.0 * rt_weekend::clamp(r, 0.0, 0.999)) as u8,
+        (256.0 * rt_weekend::clamp(g, 0.0, 0.999)) as u8,
+        (256.0 * rt_weekend::clamp(b, 0.0, 0.999)) as u8,
+    ]
+}
+
 fn main() {
-    let path = std::path::Path::new("output/book1/image5.jpg");
+    let path = std::path::Path::new("output/book1/image6.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -49,6 +72,7 @@ fn main() {
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: u32 = 400;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
+    let samples_per_pixel: u32 = 100;
 
     // World
     let mut world: HittableList = HittableList::new();
@@ -62,15 +86,7 @@ fn main() {
     )));
 
     // Camera
-    let viewport_height: f64 = 2.0;
-    let viewport_width: f64 = aspect_ratio * viewport_height;
-    let focal_length: f64 = 1.0;
-
-    let origin: Point3 = Point3::construct(&[0.0, 0.0, 0.0]);
-    let horizontal: Vec3 = Vec3::construct(&[viewport_width, 0.0, 0.0]);
-    let vertical: Vec3 = Vec3::construct(&[0.0, viewport_height, 0.0]);
-    let lower_left_corner: Vec3 =
-        origin - horizontal / 2.0 - vertical / 2.0 - Vec3::construct(&[0.0, 0.0, focal_length]);
+    let cam: Camera = Camera::new();
 
     // Render
     let quality = 100;
@@ -85,14 +101,15 @@ fn main() {
     for j in (0..image_height).rev() {
         for i in 0..image_width {
             let pixel = img.get_pixel_mut(i, image_height - j - 1);
-            let u: f64 = (i as f64) / ((image_width - 1) as f64);
-            let v: f64 = (j as f64) / ((image_height - 1) as f64);
-            let r: Ray = Ray::construct(
-                &origin,
-                &(lower_left_corner + horizontal * u + vertical * v - origin),
-            );
-            let pixel_color: Color3 = ray_color(&r, &mut world);
-            let rgb: [u8; 3] = pixel_color.rgb();
+            let mut pixel_color: Color3 = Color3::construct(&[0.0, 0.0, 0.0]);
+            for _s in 0..samples_per_pixel {
+                let u: f64 = (i as f64 + random_double()) / (image_width - 1) as f64;
+                let v: f64 = (j as f64 + random_double()) / (image_height - 1) as f64;
+                let r: Ray = cam.get_ray(u, v);
+                pixel_color += ray_color(&r, &mut world);
+            }
+
+            let rgb: [u8; 3] = write_color(&pixel_color, samples_per_pixel);
             *pixel = image::Rgb(rgb);
         }
         progress.inc(1);
