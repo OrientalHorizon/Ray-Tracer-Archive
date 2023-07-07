@@ -86,6 +86,14 @@ pub fn random_in_unit_sphere() -> Vec3 {
     }
 }
 
+pub fn random_unit_vector() -> Vec3 {
+    random_in_unit_sphere().unit()
+}
+
+pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
+    *v - 2.0 * dot(v, n) * *n
+}
+
 impl Add<Vec3> for Vec3 {
     type Output = Self;
 

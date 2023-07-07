@@ -9,12 +9,12 @@ pub struct Ray {
 }
 
 impl Ray {
-    // pub fn new() -> Self {
-    //     Self {
-    //         origin: Point3::new(),
-    //         direction: Vec3::new(),
-    //     }
-    // }
+    pub fn new() -> Self {
+        Self {
+            origin: Point3::new(),
+            direction: Vec3::new(),
+        }
+    }
     pub fn construct(origin: &Point3, direction: &Vec3) -> Self {
         Self {
             origin: *origin,
