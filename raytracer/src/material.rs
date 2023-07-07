@@ -60,12 +60,12 @@ impl Metal {
     //         _fuzz: 0.0,
     //     }
     // }
-    pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
-        Self {
-            albedo: *albedo,
-            fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
-        }
-    }
+    // pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
+    //     Self {
+    //         albedo: *albedo,
+    //         fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
+    //     }
+    // }
 }
 
 impl Material for Metal {
@@ -92,9 +92,9 @@ impl Dielectric {
     // pub fn new() -> Self {
     //     Self { ir: 1.0 }
     // }
-    pub fn construct(ir: f64) -> Self {
-        Self { ir }
-    }
+    // pub fn construct(ir: f64) -> Self {
+    //     Self { ir }
+    // }
 
     pub fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
         let mut r0: f64 = (1.0 - ref_idx) / (1.0 + ref_idx);

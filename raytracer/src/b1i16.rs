@@ -16,10 +16,9 @@ mod vec3;
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
-// use material::{Dielectric, Lambertian, Metal};
-use material::Lambertian;
+use material::{Dielectric, Lambertian, Metal};
 use ray::Ray;
-use rt_weekend::{random_double, PI};
+use rt_weekend::random_double;
 use sphere::Sphere;
 use vec3::{Color3, Point3, Vec3};
 
@@ -80,7 +79,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image17.jpg");
+    let path = std::path::Path::new("output/book1/image16.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -93,28 +92,39 @@ fn main() {
     let max_depth: i32 = 50;
 
     // World
-    let pi_div_4: f64 = PI / 4.0;
-    let r: f64 = pi_div_4.cos();
-    let mut world: HittableList = HittableList::new();
-
-    let material_left: Rc<Lambertian> =
-        Rc::new(Lambertian::construct(&Color3::construct(&[0.0, 0.0, 1.0])));
-    let material_right: Rc<Lambertian> =
-        Rc::new(Lambertian::construct(&Color3::construct(&[1.0, 0.0, 0.0])));
-
+    let mut world = HittableList::new();
+    let material_ground = Rc::new(Lambertian::construct(&Color3::construct(&[0.8, 0.8, 0.0])));
+    let material_center = Rc::new(Lambertian::construct(&Color3::construct(&[0.1, 0.2, 0.5])));
+    let material_left = Rc::new(Dielectric::construct(1.5));
+    let material_right = Rc::new(Metal::construct(&Color3::construct(&[0.8, 0.6, 0.2]), 0.0));
     world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[-r, 0.0, -1.0]),
-        r,
+        &Point3::construct(&[0.0, -100.5, -1.0]),
+        100.0,
+        material_ground,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, 0.0, -1.0]),
+        0.5,
+        material_center,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[-1.0, 0.0, -1.0]),
+        0.5,
+        material_left.clone(),
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[-1.0, 0.0, -1.0]),
+        -0.4,
         material_left,
     )));
     world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[r, 0.0, -1.0]),
-        r,
+        &Point3::construct(&[1.0, 0.0, -1.0]),
+        0.5,
         material_right,
     )));
 
     // Camera
-    let cam: Camera = Camera::new(90.0, aspect_ratio);
+    let cam: Camera = Camera::new();
 
     // Render
     let quality = 100;
