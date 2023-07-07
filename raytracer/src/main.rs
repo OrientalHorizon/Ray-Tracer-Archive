@@ -80,7 +80,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image18.jpg");
+    let path = std::path::Path::new("output/book1/image19.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -130,7 +130,7 @@ fn main() {
         &Point3::construct(&[-2.0, 2.0, 1.0]),
         &Point3::construct(&[0.0, 0.0, -1.0]),
         &Vec3::construct(&[0.0, 1.0, 0.0]),
-        90.0,
+        20.0,
         aspect_ratio,
     );
 
