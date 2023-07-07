@@ -90,14 +90,14 @@ pub fn random_unit_vector() -> Vec3 {
     random_in_unit_sphere().unit()
 }
 
-pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
-    let in_unit_sphere = random_in_unit_sphere();
-    if dot(&in_unit_sphere, normal) > 0.0 {
-        in_unit_sphere
-    } else {
-        -in_unit_sphere
-    }
-}
+// pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
+//     let in_unit_sphere = random_in_unit_sphere();
+//     if dot(&in_unit_sphere, normal) > 0.0 {
+//         in_unit_sphere
+//     } else {
+//         -in_unit_sphere
+//     }
+// }
 
 pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
     *v - 2.0 * dot(v, n) * *n
