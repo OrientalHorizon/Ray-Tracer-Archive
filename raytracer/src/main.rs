@@ -18,7 +18,7 @@ use hittable_list::HittableList;
 use ray::Ray;
 use rt_weekend::random_double;
 use sphere::Sphere;
-use vec3::{Color3, Point3, Vec3};
+use vec3::{random_in_unit_sphere, Color3, Point3, Vec3};
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -33,10 +33,14 @@ pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     }
 }
 
-pub fn ray_color(r: &Ray, world: &mut dyn Hittable) -> Color3 {
+pub fn ray_color(r: &Ray, world: &mut dyn Hittable, depth: i32) -> Color3 {
     let mut rec: HitRecord = HitRecord::new();
-    if world.hit(r, 0.0, f64::INFINITY, &mut rec) {
-        return 0.5 * (rec.normal + Color3::construct(&[1.0, 1.0, 1.0]));
+    if depth <= 0 {
+        return Color3::new();
+    }
+    if world.hit(r, 0.001, f64::INFINITY, &mut rec) {
+        let target: Point3 = rec.p + rec.normal + random_in_unit_sphere();
+        return 0.5 * ray_color(&Ray::construct(&rec.p, &(target - rec.p)), world, depth - 1);
     }
     let unit_direction = r.direction.unit();
     let t: f64 = 0.5 * (unit_direction.y() + 1.0);
@@ -63,7 +67,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book1/image6.jpg");
+    let path = std::path::Path::new("output/book1/image7.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
@@ -73,6 +77,7 @@ fn main() {
     let image_width: u32 = 400;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     let samples_per_pixel: u32 = 100;
+    let max_depth: i32 = 50;
 
     // World
     let mut world: HittableList = HittableList::new();
@@ -106,7 +111,7 @@ fn main() {
                 let u: f64 = (i as f64 + random_double()) / (image_width - 1) as f64;
                 let v: f64 = (j as f64 + random_double()) / (image_height - 1) as f64;
                 let r: Ray = cam.get_ray(u, v);
-                pixel_color += ray_color(&r, &mut world);
+                pixel_color += ray_color(&r, &mut world, max_depth);
             }
 
             let rgb: [u8; 3] = write_color(&pixel_color, samples_per_pixel);

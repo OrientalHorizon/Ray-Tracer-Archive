@@ -1,3 +1,5 @@
+use crate::rt_weekend::random_double;
+use crate::rt_weekend::random_double_range;
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
@@ -44,6 +46,20 @@ impl Vec3 {
             (255.999 * self.e[2]) as u8,
         ]
     }
+    pub fn random() -> Self {
+        Self {
+            e: [random_double(), random_double(), random_double()],
+        }
+    }
+    pub fn random_range(min: f64, max: f64) -> Self {
+        Self {
+            e: [
+                random_double_range(min, max),
+                random_double_range(min, max),
+                random_double_range(min, max),
+            ],
+        }
+    }
 }
 
 pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
@@ -59,6 +75,16 @@ pub fn dot(u: &Vec3, v: &Vec3) -> f64 {
 //         ],
 //     }
 // }
+
+pub fn random_in_unit_sphere() -> Vec3 {
+    loop {
+        let p: Vec3 = Vec3::random_range(-1.0, 1.0);
+        if p.length_squared() >= 1.0 {
+            continue;
+        }
+        return p;
+    }
+}
 
 impl Add<Vec3> for Vec3 {
     type Output = Self;
