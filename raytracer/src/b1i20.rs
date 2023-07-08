@@ -16,10 +16,10 @@ mod vec3;
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
-use material::{Material, Dielectric, Lambertian, Metal};
+use material::{Dielectric, Lambertian, Metal};
 // use material::Lambertian;
 use ray::Ray;
-use rt_weekend::{random_double, random_double_range};
+use rt_weekend::random_double;
 use sphere::Sphere;
 use vec3::{Color3, Point3, Vec3};
 
@@ -79,94 +79,58 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
     ]
 }
 
-fn random_scene() -> HittableList {
-    let mut world = HittableList::new();
-
-    let ground_material = Rc::new(Lambertian::construct(&Color3::construct(&[0.5, 0.5, 0.5])));
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[0.0, -1000.0, 0.0]),
-        1000.0,
-        ground_material,
-    )));
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = random_double();
-            let center = Point3::construct(&[
-                a as f64 + 0.9 * random_double(),
-                0.2,
-                b as f64 + 0.9 * random_double(),
-            ]);
-
-            if (center - Point3::construct(&[4.0, 0.2, 0.0])).length() > 0.9 {
-                let sphere_material: Rc<dyn Material> = if choose_mat < 0.8 {
-                    // diffuse
-                    let albedo = Color3::random() * Color3::random();
-                    Rc::new(Lambertian::construct(&albedo))
-                } else if choose_mat < 0.95 {
-                    // metal
-                    let albedo = Color3::random_range(0.5, 1.0);
-                    let fuzz = random_double_range(0.0, 0.5);
-                    Rc::new(Metal::construct(&albedo, fuzz))
-                } else {
-                    // glass
-                    Rc::new(Dielectric::construct(1.5))
-                };
-                world.add(Rc::new(Sphere::construct(
-                    &center,
-                    0.2,
-                    sphere_material,
-                )));
-            }
-        }
-    }
-
-    let material1 = Rc::new(Dielectric::construct(1.5));
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[0.0, 1.0, 0.0]),
-        1.0,
-        material1,
-    )));
-
-    let material2 = Rc::new(Lambertian::construct(&Color3::construct(&[0.4, 0.2, 0.1])));
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[-4.0, 1.0, 0.0]),
-        1.0,
-        material2,
-    )));
-
-    let material3 = Rc::new(Metal::construct(&Color3::construct(&[0.4, 0.2, 0.1]), 0.0));
-    world.add(Rc::new(Sphere::construct(
-        &Point3::construct(&[4.0, 1.0, 0.0]),
-        1.0,
-        material3,
-    )));
-
-    world
-}
-
 fn main() {
-    let path = std::path::Path::new("output/book1/image21.jpg");
+    let path = std::path::Path::new("output/book1/image20.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
     // Image
-    let aspect_ratio: f64 = 3.0 / 2.0;
-    let image_width: u32 = 1200;
+    let aspect_ratio: f64 = 16.0 / 9.0;
+    let image_width: u32 = 400;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel: u32 = 500;
+    let samples_per_pixel: u32 = 100;
     let max_depth: i32 = 50;
 
     // World
-    let mut world =  random_scene();
+    // World
+    let mut world = HittableList::new();
+    let material_ground = Rc::new(Lambertian::construct(&Color3::construct(&[0.8, 0.8, 0.0])));
+    let material_center = Rc::new(Lambertian::construct(&Color3::construct(&[0.1, 0.2, 0.5])));
+    let material_left = Rc::new(Dielectric::construct(1.5));
+    let material_right = Rc::new(Metal::construct(&Color3::construct(&[0.8, 0.6, 0.2]), 0.0));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, -100.5, -1.0]),
+        100.0,
+        material_ground,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, 0.0, -1.0]),
+        0.5,
+        material_center,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[-1.0, 0.0, -1.0]),
+        0.5,
+        material_left.clone(),
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[-1.0, 0.0, -1.0]),
+        -0.4,
+        material_left,
+    )));
+    world.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[1.0, 0.0, -1.0]),
+        0.5,
+        material_right,
+    )));
 
     // Camera
-    let lookfrom: Point3 = Point3::construct(&[13.0, 2.0, 3.0]);
-    let lookat: Point3 = Point3::construct(&[0.0, 0.0, 0.0]);
+    let lookfrom: Point3 = Point3::construct(&[3.0, 3.0, 2.0]);
+    let lookat: Point3 = Point3::construct(&[0.0, 0.0, -1.0]);
     let vup: Vec3 = Vec3::construct(&[0.0, 1.0, 0.0]);
-    let dist_to_focus: f64 = 10.0;
-    let aperture: f64 = 0.1;
+    let dist_to_focus: f64 = (lookfrom - lookat).length();
+    let aperture: f64 = 2.0;
 
     let cam: Camera = Camera::new(
         &lookfrom,
