@@ -18,11 +18,11 @@ pub struct Lambertian {
 }
 
 impl Lambertian {
-    pub fn new() -> Self {
-        Self {
-            albedo: Color3::new(),
-        }
-    }
+    // pub fn new() -> Self {
+    //     Self {
+    //         albedo: Color3::new(),
+    //     }
+    // }
     pub fn construct(albedo: &Color3) -> Self {
         Self { albedo: *albedo }
     }
@@ -54,12 +54,12 @@ pub struct Metal {
 }
 
 impl Metal {
-    pub fn new() -> Self {
-        Self {
-            albedo: Color3::new(),
-            fuzz: 0.0,
-        }
-    }
+    // pub fn new() -> Self {
+    //     Self {
+    //         albedo: Color3::new(),
+    //         fuzz: 0.0,
+    //     }
+    // }
     pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
         Self {
             albedo: *albedo,
@@ -89,9 +89,9 @@ pub struct Dielectric {
 }
 
 impl Dielectric {
-    pub fn new() -> Self {
-        Self { ir: 1.0 }
-    }
+    // pub fn new() -> Self {
+    //     Self { ir: 1.0 }
+    // }
     pub fn construct(ir: f64) -> Self {
         Self { ir }
     }

@@ -16,7 +16,7 @@ mod vec3;
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
-use material::{Material, Dielectric, Lambertian, Metal};
+use material::{Dielectric, Lambertian, Material, Metal};
 // use material::Lambertian;
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
@@ -112,11 +112,7 @@ fn random_scene() -> HittableList {
                     // glass
                     Rc::new(Dielectric::construct(1.5))
                 };
-                world.add(Rc::new(Sphere::construct(
-                    &center,
-                    0.2,
-                    sphere_material,
-                )));
+                world.add(Rc::new(Sphere::construct(&center, 0.2, sphere_material)));
             }
         }
     }
@@ -135,7 +131,7 @@ fn random_scene() -> HittableList {
         material2,
     )));
 
-    let material3 = Rc::new(Metal::construct(&Color3::construct(&[0.4, 0.2, 0.1]), 0.0));
+    let material3 = Rc::new(Metal::construct(&Color3::construct(&[0.7, 0.6, 0.5]), 0.0));
     world.add(Rc::new(Sphere::construct(
         &Point3::construct(&[4.0, 1.0, 0.0]),
         1.0,
@@ -159,7 +155,7 @@ fn main() {
     let max_depth: i32 = 50;
 
     // World
-    let mut world =  random_scene();
+    let mut world = random_scene();
 
     // Camera
     let lookfrom: Point3 = Point3::construct(&[13.0, 2.0, 3.0]);
