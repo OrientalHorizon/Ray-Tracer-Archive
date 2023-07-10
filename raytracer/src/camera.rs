@@ -1,5 +1,5 @@
 use crate::ray::Ray;
-use crate::rt_weekend::degrees_to_radians;
+use crate::rt_weekend::{degrees_to_radians, random_double_range};
 use crate::vec3::{cross, random_in_unit_disk, Point3, Vec3};
 pub struct Camera {
     pub origin: Point3,
@@ -10,6 +10,9 @@ pub struct Camera {
     pub v: Vec3,
     pub w: Vec3,
     pub lens_radius: f64,
+    pub time0: f64,
+    pub time1: f64,
+    // Shutter open / close time
 }
 
 impl Camera {
@@ -17,11 +20,15 @@ impl Camera {
         lookfrom: &Point3,
         lookat: &Point3,
         vup: &Vec3,
-        vfov: f64,
-        aspect_ratio: f64,
-        aperture: f64,
-        focus_dist: f64,
+        scope: &[f64],
+        // vfov, aspect_ratio, aperture, focus_dist
+        time0: f64,
+        time1: f64,
     ) -> Self {
+        let vfov = scope[0];
+        let aspect_ratio = scope[1];
+        let aperture = scope[2];
+        let focus_dist = scope[3];
         let theta: f64 = degrees_to_radians(vfov);
         let h: f64 = (theta / 2.0).tan();
         let viewport_height: f64 = 2.0 * h;
@@ -44,6 +51,8 @@ impl Camera {
             v,
             w,
             lens_radius: aperture / 2.0,
+            time0,
+            time1,
         }
     }
     pub fn get_ray(&self, s: f64, t: f64) -> Ray {
@@ -54,6 +63,7 @@ impl Camera {
             &(self.lower_left_corner + self.horizontal * s + self.vertical * t
                 - self.origin
                 - offset),
+            random_double_range(self.time0, self.time1),
         )
     }
 }

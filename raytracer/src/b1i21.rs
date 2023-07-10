@@ -8,7 +8,6 @@ mod camera;
 mod hittable;
 mod hittable_list;
 mod material;
-mod moving_sphere;
 mod ray;
 mod rt_weekend;
 mod sphere;
@@ -18,7 +17,6 @@ use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Material, Metal};
-use moving_sphere::MovingSphere;
 // use material::Lambertian;
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
@@ -101,22 +99,20 @@ fn random_scene() -> HittableList {
             ]);
 
             if (center - Point3::construct(&[4.0, 0.2, 0.0])).length() > 0.9 {
-                let sphere_material: Rc<dyn Material>;
-                if choose_mat < 0.8 {
+                let sphere_material: Rc<dyn Material> = if choose_mat < 0.8 {
                     // diffuse
                     let albedo = Color3::random() * Color3::random();
-                    sphere_material = Rc::new(Lambertian::construct(&albedo));
-                    let center2 =
-                        center + Vec3::construct(&[0.0, random_double_range(0.0, 0.5), 0.0]);
-                    world.add(Rc::new(MovingSphere::construct(
-                        &center,
-                        &center2,
-                        0.0,
-                        1.0,
-                        0.2,
-                        sphere_material,
-                    )));
-                }
+                    Rc::new(Lambertian::construct(&albedo))
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo = Color3::random_range(0.5, 1.0);
+                    let fuzz = random_double_range(0.0, 0.5);
+                    Rc::new(Metal::construct(&albedo, fuzz))
+                } else {
+                    // glass
+                    Rc::new(Dielectric::construct(1.5))
+                };
+                world.add(Rc::new(Sphere::construct(&center, 0.2, sphere_material)));
             }
         }
     }
@@ -146,16 +142,16 @@ fn random_scene() -> HittableList {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book2/image1.jpg");
+    let path = std::path::Path::new("output/book1/image21.jpg");
     // 青天蓝日满地绿
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
     // Image
-    let aspect_ratio: f64 = 16.0 / 9.0;
-    let image_width: u32 = 400;
+    let aspect_ratio: f64 = 3.0 / 2.0;
+    let image_width: u32 = 1200;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel: u32 = 100;
+    let samples_per_pixel: u32 = 500;
     let max_depth: i32 = 50;
 
     // World
@@ -172,9 +168,10 @@ fn main() {
         &lookfrom,
         &lookat,
         &vup,
-        &[20.0, aspect_ratio, aperture, dist_to_focus],
-        0.0,
-        1.0,
+        20.0,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
     );
 
     // Render
