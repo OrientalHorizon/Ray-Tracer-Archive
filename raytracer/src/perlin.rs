@@ -26,6 +26,9 @@ impl Perlin {
         let u: f64 = p.x() - p.x().floor();
         let v: f64 = p.y() - p.y().floor();
         let w: f64 = p.z() - p.z().floor();
+        let u = u * u * (3.0 - 2.0 * u);
+        let v = v * v * (3.0 - 2.0 * v);
+        let w = w * w * (3.0 - 2.0 * w);
 
         let i: i32 = p.x().floor() as i32;
         let j: i32 = p.y().floor() as i32;

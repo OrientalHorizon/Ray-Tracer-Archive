@@ -195,7 +195,7 @@ pub fn two_perlin_spheres() -> HittableList {
 }
 
 fn main() {
-    let path = std::path::Path::new("output/book2/image8.jpg");
+    let path = std::path::Path::new("output/book2/image9.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -203,7 +203,7 @@ fn main() {
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: u32 = 400;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel: u32 = 100;
+    let samples_per_pixel: u32 = 500;
     let max_depth: i32 = 50;
 
     // World
