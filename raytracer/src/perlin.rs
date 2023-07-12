@@ -23,11 +23,28 @@ impl Perlin {
         }
     }
     pub fn noise(&self, p: &Point3) -> f64 {
-        let i = ((4.0 * p.x()).floor() as i32) & 255i32;
-        let j = ((4.0 * p.y()).floor() as i32) & 255i32;
-        let k = ((4.0 * p.z()).floor() as i32) & 255i32;
-        self.ranfloat
-            [(self.perm_x[i as usize] ^ self.perm_y[j as usize] ^ self.perm_z[k as usize]) as usize]
+        let u: f64 = p.x() - p.x().floor();
+        let v: f64 = p.y() - p.y().floor();
+        let w: f64 = p.z() - p.z().floor();
+
+        let i: i32 = p.x().floor() as i32;
+        let j: i32 = p.y().floor() as i32;
+        let k: i32 = p.z().floor() as i32;
+        let mut c: [[[f64; 2]; 2]; 2] = [[[0.0; 2]; 2]; 2];
+
+        for di in 0..2 {
+            for dj in 0..2 {
+                for dk in 0..2 {
+                    c[di as usize][dj as usize][dk as usize] = self.ranfloat[(self.perm_x
+                        [((i + di as i32) & 255) as usize]
+                        ^ self.perm_y[((j + dj as i32) & 255) as usize]
+                        ^ self.perm_z[((k + dk as i32) & 255) as usize])
+                        as usize];
+                }
+            }
+        }
+
+        Self::trilinear_interp(&c, u, v, w)
     }
     fn perlin_generate_perm() -> Vec<u32> {
         let mut p: Vec<u32> = Vec::with_capacity(Self::POINT_COUNT as usize);
@@ -42,5 +59,19 @@ impl Perlin {
             let target = random_int(0, i);
             p.swap(i as usize, target as usize);
         }
+    }
+    fn trilinear_interp(c: &[[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+        let mut accum = 0.0;
+        for i in c.iter().enumerate() {
+            for j in c[i.0].iter().enumerate() {
+                for k in c[i.0][j.0].iter().enumerate() {
+                    accum += (i.0 as f64 * u + (1.0 - i.0 as f64) * (1.0 - u))
+                        * (j.0 as f64 * v + (1.0 - j.0 as f64) * (1.0 - v))
+                        * (k.0 as f64 * w + (1.0 - k.0 as f64) * (1.0 - w))
+                        * c[i.0][j.0][k.0];
+                }
+            }
+        }
+        accum
     }
 }
