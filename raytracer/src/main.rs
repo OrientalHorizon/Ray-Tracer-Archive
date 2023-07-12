@@ -3,7 +3,6 @@ use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
 use std::rc::Rc;
 use std::{fs::File, process::exit};
-use texture::CheckerTexture;
 
 mod aabb;
 mod camera;
@@ -11,6 +10,7 @@ mod hittable;
 mod hittable_list;
 mod material;
 mod moving_sphere;
+mod perlin;
 mod ray;
 mod rt_weekend;
 mod sphere;
@@ -22,10 +22,10 @@ use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Material, Metal};
 use moving_sphere::MovingSphere;
-
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
 use sphere::Sphere;
+use texture::{CheckerTexture, NoiseTexture};
 use vec3::{Color3, Point3, Vec3};
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
@@ -178,8 +178,24 @@ pub fn two_spheres() -> HittableList {
     objects
 }
 
+pub fn two_perlin_spheres() -> HittableList {
+    let mut objects = HittableList::new();
+    let pertext = Rc::new(NoiseTexture::new());
+    objects.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, -1000.0, 0.0]),
+        1000.0,
+        Rc::new(Lambertian::construct_texture(pertext.clone())),
+    )));
+    objects.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, 2.0, 0.0]),
+        2.0,
+        Rc::new(Lambertian::construct_texture(pertext)),
+    )));
+    objects
+}
+
 fn main() {
-    let path = std::path::Path::new("output/book2/image3.jpg");
+    let path = std::path::Path::new("output/book2/image7.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -206,7 +222,7 @@ fn main() {
             aperture = 0.1;
         }
         _ => {
-            world = two_spheres();
+            world = two_perlin_spheres();
         }
     }
 

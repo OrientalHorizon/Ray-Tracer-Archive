@@ -13,6 +13,10 @@ pub fn random_double() -> f64 {
 pub fn random_double_range(min: f64, max: f64) -> f64 {
     min + (max - min) * rand::random::<f64>()
 }
+pub fn random_int(min: u32, max: u32) -> u32 {
+    // Returns a random integer in [min,max].
+    min + (rand::random::<f64>() * (max - min + 1) as f64).floor() as u32
+}
 
 pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
     if x < min {
