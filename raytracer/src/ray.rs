@@ -4,9 +4,9 @@ use crate::vec3::Vec3;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Ray {
-    pub origin: Point3,
-    pub direction: Vec3,
-    pub tm: f64,
+    origin: Point3,
+    direction: Vec3,
+    tm: f64,
 }
 
 impl Ray {

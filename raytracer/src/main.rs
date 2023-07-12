@@ -3,7 +3,9 @@ use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
 use std::rc::Rc;
 use std::{fs::File, process::exit};
+use texture::CheckerTexture;
 
+mod aabb;
 mod camera;
 mod hittable;
 mod hittable_list;
@@ -12,6 +14,7 @@ mod moving_sphere;
 mod ray;
 mod rt_weekend;
 mod sphere;
+mod texture;
 mod vec3;
 
 use camera::Camera;
@@ -19,7 +22,7 @@ use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Material, Metal};
 use moving_sphere::MovingSphere;
-// use material::Lambertian;
+
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
 use sphere::Sphere;
@@ -57,7 +60,7 @@ pub fn ray_color(r: &Ray, world: &mut dyn Hittable, depth: i32) -> Color3 {
         return Color3::construct(&[0.0, 0.0, 0.0]);
     }
 
-    let unit_direction = r.direction.unit();
+    let unit_direction = r.direction().unit();
     let t: f64 = 0.5 * (unit_direction.y() + 1.0);
     Color3::construct(&[1.0, 1.0, 1.0]) * (1.0 - t) + Color3::construct(&[0.5, 0.7, 1.0]) * t
 }
@@ -84,11 +87,20 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_material = Rc::new(Lambertian::construct(&Color3::construct(&[0.5, 0.5, 0.5])));
+    // let ground_material = Rc::new(Lambertian::construct(&Color3::construct(&[0.5, 0.5, 0.5])));
+    // world.add(Rc::new(Sphere::construct(
+    //     &Point3::construct(&[0.0, -1000.0, 0.0]),
+    //     1000.0,
+    //     ground_material,
+    // )));
+    let checker = Rc::new(CheckerTexture::construct_color(
+        &Color3::construct(&[0.2, 0.3, 0.1]),
+        &Color3::construct(&[0.9, 0.9, 0.9]),
+    ));
     world.add(Rc::new(Sphere::construct(
         &Point3::construct(&[0.0, -1000.0, 0.0]),
         1000.0,
-        ground_material,
+        Rc::new(Lambertian::construct_texture(checker)),
     )));
 
     for a in -11..11 {

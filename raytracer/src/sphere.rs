@@ -1,6 +1,8 @@
+use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
+use crate::rt_weekend::PI;
 use crate::vec3::{dot, Point3, Vec3};
 use std::rc::Rc;
 
@@ -23,6 +25,12 @@ impl Sphere {
             radius,
             mat_ptr,
         }
+    }
+    fn get_sphere_uv(p: &Point3, u: &mut f64, v: &mut f64) {
+        let theta: f64 = (-p.y()).acos();
+        let phi: f64 = (-p.z()).atan2(p.x()) + PI;
+        *u = phi / (2.0 * PI);
+        *v = theta / PI;
     }
 }
 
@@ -48,7 +56,16 @@ impl Hittable for Sphere {
         rec.p = r.at(rec.t);
         let outward_normal: Vec3 = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, &outward_normal);
+        Sphere::get_sphere_uv(&outward_normal, &mut rec.u, &mut rec.v);
         rec.mat_ptr = Some(Rc::clone(&self.mat_ptr));
+        true
+    }
+    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
+        let radius = self.radius;
+        *output_box = Aabb::construct(
+            &(self.center - Vec3::construct(&[radius, radius, radius])),
+            &(self.center + Vec3::construct(&[radius, radius, radius])),
+        );
         true
     }
 }

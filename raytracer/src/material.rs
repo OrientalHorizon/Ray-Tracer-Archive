@@ -1,7 +1,10 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::rt_weekend::random_double;
+use crate::texture::{SolidColor, Texture};
 use crate::vec3::{dot, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3, Vec3};
+use std::ops::Deref;
+use std::rc::Rc;
 
 pub trait Material {
     fn scatter(
@@ -14,7 +17,8 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    pub albedo: Color3,
+    // pub albedo: Color3,
+    pub albedo: Rc<dyn Texture>,
 }
 
 impl Lambertian {
@@ -23,8 +27,15 @@ impl Lambertian {
     //         albedo: Color3::new(),
     //     }
     // }
-    pub fn construct(albedo: &Color3) -> Self {
-        Self { albedo: *albedo }
+    pub fn construct(a: &Color3) -> Self {
+        Self {
+            albedo: Rc::new(SolidColor::construct(a)),
+        }
+    }
+    pub fn construct_texture(a: Rc<dyn Texture>) -> Self {
+        Self {
+            albedo: Rc::clone(&a),
+        }
     }
 }
 
@@ -43,7 +54,7 @@ impl Material for Lambertian {
         }
 
         *scattered = Ray::construct(&rec.p, &scatter_direction, r_in.time());
-        *attenuation = self.albedo;
+        *attenuation = self.albedo.deref().value(rec.u, rec.v, &rec.p);
         true
     }
 }

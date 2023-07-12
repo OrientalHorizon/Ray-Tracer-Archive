@@ -1,3 +1,4 @@
+use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
@@ -27,7 +28,7 @@ impl MovingSphere {
             time0,
             time1,
             radius,
-            mat_ptr: m,
+            mat_ptr: Rc::clone(&m),
         }
     }
     pub fn center(&self, time: f64) -> Vec3 {
@@ -59,6 +60,18 @@ impl Hittable for MovingSphere {
         let outward_normal: Vec3 = (rec.p - self.center(r.time())) / self.radius;
         rec.set_face_normal(r, &outward_normal);
         rec.mat_ptr = Some(Rc::clone(&self.mat_ptr));
+        true
+    }
+    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut crate::aabb::Aabb) -> bool {
+        let box0 = crate::aabb::Aabb::construct(
+            &(self.center(time0) - Vec3::construct(&[self.radius, self.radius, self.radius])),
+            &(self.center(time0) + Vec3::construct(&[self.radius, self.radius, self.radius])),
+        );
+        let box1 = crate::aabb::Aabb::construct(
+            &(self.center(time1) - Vec3::construct(&[self.radius, self.radius, self.radius])),
+            &(self.center(time1) + Vec3::construct(&[self.radius, self.radius, self.radius])),
+        );
+        *output_box = Aabb::surrounding_box(&box0, &box1);
         true
     }
 }
