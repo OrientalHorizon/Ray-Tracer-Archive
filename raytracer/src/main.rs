@@ -157,9 +157,29 @@ fn random_scene() -> HittableList {
     world
 }
 
+pub fn two_spheres() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let checker = Rc::new(CheckerTexture::construct_color(
+        &Color3::construct(&[0.2, 0.3, 0.1]),
+        &Color3::construct(&[0.9, 0.9, 0.9]),
+    ));
+    objects.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, -10.0, 0.0]),
+        10.0,
+        Rc::new(Lambertian::construct_texture(checker.clone())),
+    )));
+    objects.add(Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, 10.0, 0.0]),
+        10.0,
+        Rc::new(Lambertian::construct_texture(checker)),
+    )));
+
+    objects
+}
+
 fn main() {
-    let path = std::path::Path::new("output/book2/image2.jpg");
-    // 青天蓝日满地绿
+    let path = std::path::Path::new("output/book2/image3.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -171,20 +191,36 @@ fn main() {
     let max_depth: i32 = 50;
 
     // World
-    let mut world = random_scene();
+    // let mut world = random_scene();
+
+    let mut world: HittableList;
+
+    let lookfrom = Point3::construct(&[13.0, 2.0, 3.0]);
+    let lookat = Point3::construct(&[0.0, 0.0, 0.0]);
+    let vfov = 20.0;
+    let mut aperture = 0.0;
+    let mth = 0;
+    match mth {
+        1 => {
+            world = random_scene();
+            aperture = 0.1;
+        }
+        _ => {
+            world = two_spheres();
+        }
+    }
 
     // Camera
-    let lookfrom: Point3 = Point3::construct(&[13.0, 2.0, 3.0]);
-    let lookat: Point3 = Point3::construct(&[0.0, 0.0, 0.0]);
+    // let lookfrom: Point3 = Point3::construct(&[13.0, 2.0, 3.0]);
+    // let lookat: Point3 = Point3::construct(&[0.0, 0.0, 0.0]);
     let vup: Vec3 = Vec3::construct(&[0.0, 1.0, 0.0]);
     let dist_to_focus: f64 = 10.0;
-    let aperture: f64 = 0.1;
 
     let cam: Camera = Camera::new(
         &lookfrom,
         &lookat,
         &vup,
-        &[20.0, aspect_ratio, aperture, dist_to_focus],
+        &[vfov, aspect_ratio, aperture, dist_to_focus],
         0.0,
         1.0,
     );

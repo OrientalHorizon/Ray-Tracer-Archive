@@ -7,6 +7,7 @@ use hittable::{HitRecord, Hittable};
 use std::rc::Rc;
 use std::vec::Vec;
 
+#[derive(Default)]
 pub struct HittableList {
     objects: Vec<Rc<dyn Hittable>>,
 }
