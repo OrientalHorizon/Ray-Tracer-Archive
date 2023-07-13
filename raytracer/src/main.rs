@@ -18,7 +18,7 @@ mod sphere;
 mod texture;
 mod vec3;
 
-use aarect::XyRect;
+use aarect::{XyRect, XzRect, YzRect};
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
@@ -254,16 +254,62 @@ pub fn simple_light() -> HittableList {
     objects
 }
 
+pub fn cornell_box() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let red = Rc::new(Lambertian::construct(&Color3::construct(&[
+        0.65, 0.05, 0.05,
+    ])));
+    let white = Rc::new(Lambertian::construct(&Color3::construct(&[
+        0.73, 0.73, 0.73,
+    ])));
+    let green = Rc::new(Lambertian::construct(&Color3::construct(&[
+        0.12, 0.45, 0.15,
+    ])));
+    let light = Rc::new(DiffuseLight::construct_color(&Color3::construct(&[
+        15.0, 15.0, 15.0,
+    ])));
+
+    objects.add(Rc::new(YzRect::construct(
+        0.0, 555.0, 0.0, 555.0, 555.0, green,
+    )));
+    objects.add(Rc::new(YzRect::construct(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add(Rc::new(XzRect::construct(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    objects.add(Rc::new(XzRect::construct(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add(Rc::new(XzRect::construct(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add(Rc::new(XyRect::construct(
+        0.0, 555.0, 0.0, 555.0, 555.0, white,
+    )));
+
+    objects
+}
+
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book2/image17.jpg");
+    let path = std::path::Path::new("output/book2/image18.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
     // Image
-    let aspect_ratio: f64 = 16.0 / 9.0;
-    let image_width: u32 = 400;
+    let aspect_ratio: f64 = 1.0;
+    let image_width: u32 = 600;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     let samples_per_pixel: u32 = 600;
     let max_depth: i32 = 50;
@@ -273,9 +319,9 @@ fn main() {
 
     let mut world: HittableList;
 
-    let lookfrom = Point3::construct(&[26.0, 3.0, 6.0]);
-    let lookat = Point3::construct(&[0.0, 2.0, 0.0]);
-    let vfov = 20.0;
+    let lookfrom = Point3::construct(&[278.0, 278.0, -800.0]);
+    let lookat = Point3::construct(&[278.0, 278.0, 0.0]);
+    let vfov = 40.0;
     let mut aperture = 0.0;
     let mut background = Color3::construct(&[0.0, 0.0, 0.0]);
     let mth = 0;
@@ -285,7 +331,7 @@ fn main() {
             aperture = 0.1;
         }
         _ => {
-            world = simple_light();
+            world = cornell_box();
             background = Color3::construct(&[0.0, 0.0, 0.0]);
         }
     }
