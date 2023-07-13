@@ -2,7 +2,9 @@ use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::rt_weekend::random_double;
 use crate::texture::{SolidColor, Texture};
-use crate::vec3::{dot, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3, Vec3};
+use crate::vec3::{
+    dot, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3, Point3, Vec3,
+};
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -14,6 +16,9 @@ pub trait Material {
         attenuation: &mut Vec3,
         scattered: &mut Ray,
     ) -> bool;
+    fn emitted(&self, _u: f64, _v: f64, _p: &Point3) -> Color3 {
+        Color3::construct(&[0.0, 0.0, 0.0])
+    }
 }
 
 pub struct Lambertian {
@@ -148,5 +153,35 @@ impl Material for Dielectric {
 
         *scattered = Ray::construct(&rec.p, &direction, r_in.time());
         true
+    }
+}
+
+pub struct DiffuseLight {
+    emit: Rc<dyn Texture>,
+}
+impl DiffuseLight {
+    // pub fn construct(emit: Rc<dyn Texture>) -> Self {
+    //     Self {
+    //         emit: Rc::clone(&emit),
+    //     }
+    // }
+    pub fn construct_color(emit: &Color3) -> Self {
+        Self {
+            emit: Rc::new(SolidColor::construct(emit)),
+        }
+    }
+}
+impl Material for DiffuseLight {
+    fn scatter(
+        &self,
+        _r_in: &Ray,
+        _rec: &HitRecord,
+        _attenuation: &mut Vec3,
+        _scattered: &mut Ray,
+    ) -> bool {
+        false
+    }
+    fn emitted(&self, u: f64, v: f64, p: &Vec3) -> Vec3 {
+        self.emit.deref().value(u, v, p)
     }
 }
