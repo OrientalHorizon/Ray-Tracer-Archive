@@ -20,12 +20,13 @@ mod vec3;
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
+use image::GenericImageView;
 use material::{Dielectric, Lambertian, Material, Metal};
 use moving_sphere::MovingSphere;
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
 use sphere::Sphere;
-use texture::{CheckerTexture, NoiseTexture};
+use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
 use vec3::{Color3, Point3, Vec3};
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
@@ -193,9 +194,32 @@ pub fn two_perlin_spheres() -> HittableList {
     )));
     objects
 }
+pub fn earth() -> HittableList {
+    let img = image::open("earthmap.jpg").expect("Failed to open image");
+    let width: u32 = img.width();
+    let height: u32 = img.height();
+    let mut data: Vec<u8> = Vec::new();
+    for (_x, _y, pixel) in img.pixels() {
+        let rgba = pixel.0;
+        let (r, g, b) = (rgba[0], rgba[1], rgba[2]);
+        data.push(r);
+        data.push(g);
+        data.push(b);
+    }
+    let earth_texture: Rc<dyn Texture> = Rc::new(ImageTexture::construct(&data, width, height));
+    let earth_surface = Rc::new(Lambertian::construct_texture(earth_texture));
+    let globe = Rc::new(Sphere::construct(
+        &Point3::construct(&[0.0, 0.0, 0.0]),
+        2.0,
+        earth_surface,
+    ));
+    HittableList::construct(globe)
+}
 
 fn main() {
-    let path = std::path::Path::new("output/book2/image13.jpg");
+    // let img =
+
+    let path = std::path::Path::new("output/book2/image15.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -222,7 +246,7 @@ fn main() {
             aperture = 0.1;
         }
         _ => {
-            world = two_perlin_spheres();
+            world = earth();
         }
     }
 
@@ -277,7 +301,7 @@ fn main() {
     let mut output_file = File::create(path).unwrap();
     match output_image.write_to(&mut output_file, image::ImageOutputFormat::Jpeg(quality)) {
         Ok(_) => {}
-        Err(_) => println!("{}", style("Outputting image fails.").red()),
+        Err(_) => println!("{}", style("Outputing image fails.").red()),
     }
 
     exit(0);

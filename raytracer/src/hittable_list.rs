@@ -18,15 +18,14 @@ impl HittableList {
             objects: Vec::new(),
         }
     }
-    // pub fn construct(object: Rc<dyn Hittable>) -> Self {
-    //     Self {
-    //         objects: {
-    //             let mut vec = Vec::new();
-    //             vec.push(object);
-    //             vec
-    //         },
-    //     }
-    // }
+    pub fn construct(object: Rc<dyn Hittable>) -> Self {
+        Self {
+            objects: {
+                let vec = vec![object];
+                vec
+            },
+        }
+    }
     // pub fn clear(&mut self) {
     //     self.objects.clear();
     // }
