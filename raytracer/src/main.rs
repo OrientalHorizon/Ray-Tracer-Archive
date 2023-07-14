@@ -456,6 +456,7 @@ pub fn final_scene() -> HittableList {
     }
 
     let mut objects = HittableList::new();
+    objects.add(Rc::new(BVHNode::construct2(&boxes1, 0.0, 1.0)));
 
     let light = Rc::new(DiffuseLight::construct_color(&Color3::construct(&[
         7.0, 7.0, 7.0,
@@ -570,7 +571,7 @@ fn main() {
     let aspect_ratio: f64 = 1.0;
     let image_width: u32 = 800;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel: u32 = 200;
+    let samples_per_pixel: u32 = 10000;
     let max_depth: i32 = 50;
 
     // World
@@ -633,8 +634,8 @@ fn main() {
 
             let rgb: [u8; 3] = write_color(&pixel_color, samples_per_pixel);
             *pixel = image::Rgb(rgb);
+            progress.inc(1);
         }
-        progress.inc(1);
     }
     progress.finish();
 
