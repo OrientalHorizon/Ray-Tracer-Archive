@@ -22,7 +22,7 @@ mod vec3;
 use aarect::{XyRect, XzRect, YzRect};
 use boxes::Box;
 use camera::Camera;
-use hittable::{HitRecord, Hittable};
+use hittable::{HitRecord, Hittable, RotateY, Translate};
 use hittable_list::HittableList;
 use image::GenericImageView;
 use material::DiffuseLight;
@@ -312,8 +312,32 @@ pub fn cornell_box() -> HittableList {
     objects.add(Rc::new(Box::construct(
         &Point3::construct(&[265.0, 0.0, 295.0]),
         &Point3::construct(&[430.0, 330.0, 460.0]),
-        white,
+        white.clone(),
     )));
+
+    let mut box1: Rc<dyn Hittable> = Rc::new(Box::construct(
+        &Point3::construct(&[0.0, 0.0, 0.0]),
+        &Point3::construct(&[165.0, 330.0, 165.0]),
+        white.clone(),
+    ));
+    box1 = Rc::new(RotateY::construct(box1, 15.0));
+    box1 = Rc::new(Translate::construct(
+        box1,
+        &Vec3::construct(&[265.0, 0.0, 295.0]),
+    ));
+    objects.add(box1);
+
+    let mut box2: Rc<dyn Hittable> = Rc::new(Box::construct(
+        &Point3::construct(&[0.0, 0.0, 0.0]),
+        &Point3::construct(&[165.0, 165.0, 165.0]),
+        white,
+    ));
+    box2 = Rc::new(RotateY::construct(box2, -18.0));
+    box2 = Rc::new(Translate::construct(
+        box2,
+        &Vec3::construct(&[130.0, 0.0, 65.0]),
+    ));
+    objects.add(box2);
 
     objects
 }
@@ -321,7 +345,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book2/image19.jpg");
+    let path = std::path::Path::new("output/book2/image20.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -329,7 +353,7 @@ fn main() {
     let aspect_ratio: f64 = 1.0;
     let image_width: u32 = 600;
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-    let samples_per_pixel: u32 = 600;
+    let samples_per_pixel: u32 = 300;
     let max_depth: i32 = 50;
 
     // World

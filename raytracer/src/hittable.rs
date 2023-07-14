@@ -1,6 +1,7 @@
 use crate::aabb::Aabb;
 use crate::material::Material;
 use crate::ray::Ray;
+use crate::rt_weekend::{degrees_to_radians, INFINITY};
 use crate::vec3::Point3;
 use crate::vec3::{dot, Vec3};
 use std::rc::Rc;
@@ -49,4 +50,123 @@ impl HitRecord {
 pub trait Hittable {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
     fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool;
+}
+
+pub struct Translate {
+    pub ptr: Rc<dyn Hittable>,
+    pub offset: Vec3,
+}
+impl Translate {
+    pub fn construct(p: Rc<dyn Hittable>, displacement: &Vec3) -> Self {
+        Self {
+            ptr: Rc::clone(&p),
+            offset: *displacement,
+        }
+    }
+}
+impl Hittable for Translate {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let moved_r = Ray::construct(&(r.origin() - self.offset), &r.direction(), r.time());
+        if !self.ptr.hit(&moved_r, t_min, t_max, rec) {
+            return false;
+        }
+        rec.p += self.offset;
+        let norm = rec.normal;
+        rec.set_face_normal(&moved_r, &norm);
+        true
+    }
+    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
+        if !self.ptr.bounding_box(_time0, _time1, output_box) {
+            return false;
+        }
+        *output_box = Aabb::construct(
+            &(output_box.minimum() + self.offset),
+            &(output_box.maximum() + self.offset),
+        );
+        true
+    }
+}
+
+pub struct RotateY {
+    pub ptr: Rc<dyn Hittable>,
+    pub sin_theta: f64,
+    pub cos_theta: f64,
+    pub hasbox: bool,
+    pub bbox: Aabb,
+}
+impl RotateY {
+    pub fn construct(p: Rc<dyn Hittable>, angle: f64) -> Self {
+        let radians: f64 = degrees_to_radians(angle);
+        let sin_theta = radians.sin();
+        let cos_theta = radians.cos();
+        let mut bbox = Aabb::new();
+        let hasbox = p.bounding_box(0.0, 1.0, &mut bbox);
+
+        let mut mini = Point3::construct(&[INFINITY, INFINITY, INFINITY]);
+        let mut maxi = Point3::construct(&[-INFINITY, -INFINITY, -INFINITY]);
+
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let x = i as f64 * bbox.maximum().x() + (1.0 - i as f64) * bbox.minimum().x();
+                    let y = j as f64 * bbox.maximum().y() + (1.0 - j as f64) * bbox.minimum().y();
+                    let z = k as f64 * bbox.maximum().z() + (1.0 - k as f64) * bbox.minimum().z();
+
+                    let newx = cos_theta * x + sin_theta * z;
+                    let newz = -sin_theta * x + cos_theta * z;
+
+                    let tester: Vec3 = Vec3::construct(&[newx, y, newz]);
+
+                    for c in 0..3 {
+                        mini.e[c] = mini.e[c].min(tester.e[c]);
+                        maxi.e[c] = maxi.e[c].max(tester.e[c]);
+                    }
+                }
+            }
+        }
+        bbox = Aabb::construct(&mini, &maxi);
+        Self {
+            ptr: Rc::clone(&p),
+            sin_theta,
+            cos_theta,
+            hasbox,
+            bbox,
+        }
+    }
+}
+impl Hittable for RotateY {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let mut origin = r.origin();
+        let mut direction = r.direction();
+
+        origin.e[0] = self.cos_theta * r.origin().e[0] - self.sin_theta * r.origin().e[2];
+        origin.e[2] = self.sin_theta * r.origin().e[0] + self.cos_theta * r.origin().e[2];
+
+        direction.e[0] = self.cos_theta * r.direction().e[0] - self.sin_theta * r.direction().e[2];
+        direction.e[2] = self.sin_theta * r.direction().e[0] + self.cos_theta * r.direction().e[2];
+
+        let rotated_r = Ray::construct(&origin, &direction, r.time());
+
+        if !self.ptr.hit(&rotated_r, t_min, t_max, rec) {
+            return false;
+        }
+
+        let mut p = rec.p;
+        let mut normal = rec.normal;
+
+        p.e[0] = self.cos_theta * rec.p.e[0] + self.sin_theta * rec.p.e[2];
+        p.e[2] = -self.sin_theta * rec.p.e[0] + self.cos_theta * rec.p.e[2];
+
+        normal.e[0] = self.cos_theta * rec.normal.e[0] + self.sin_theta * rec.normal.e[2];
+        normal.e[2] = -self.sin_theta * rec.normal.e[0] + self.cos_theta * rec.normal.e[2];
+
+        rec.p = p;
+        rec.set_face_normal(&rotated_r, &normal);
+
+        true
+    }
+    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
+        *output_box = self.bbox;
+        self.hasbox
+    }
 }
