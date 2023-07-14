@@ -6,6 +6,7 @@ use std::{fs::File, process::exit};
 
 mod aabb;
 mod aarect;
+mod boxes;
 mod camera;
 mod hittable;
 mod hittable_list;
@@ -19,6 +20,7 @@ mod texture;
 mod vec3;
 
 use aarect::{XyRect, XzRect, YzRect};
+use boxes::Box;
 use camera::Camera;
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
@@ -294,7 +296,23 @@ pub fn cornell_box() -> HittableList {
         white.clone(),
     )));
     objects.add(Rc::new(XyRect::construct(
-        0.0, 555.0, 0.0, 555.0, 555.0, white,
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    objects.add(Rc::new(Box::construct(
+        &Point3::construct(&[130.0, 0.0, 65.0]),
+        &Point3::construct(&[295.0, 165.0, 230.0]),
+        white.clone(),
+    )));
+    objects.add(Rc::new(Box::construct(
+        &Point3::construct(&[265.0, 0.0, 295.0]),
+        &Point3::construct(&[430.0, 330.0, 460.0]),
+        white,
     )));
 
     objects
@@ -303,7 +321,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book2/image18.jpg");
+    let path = std::path::Path::new("output/book2/image19.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
