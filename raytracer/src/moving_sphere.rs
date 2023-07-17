@@ -3,14 +3,14 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::{dot, Point3, Vec3};
-use std::rc::Rc;
+use std::sync::Arc;
 pub struct MovingSphere {
     pub center0: Point3,
     pub center1: Point3,
     pub time0: f64,
     pub time1: f64,
     pub radius: f64,
-    pub mat_ptr: Rc<dyn Material>,
+    pub mat_ptr: Arc<dyn Material>,
 }
 
 impl MovingSphere {
@@ -20,7 +20,7 @@ impl MovingSphere {
         time0: f64,
         time1: f64,
         radius: f64,
-        m: Rc<dyn Material>,
+        m: Arc<dyn Material>,
     ) -> Self {
         Self {
             center0: *center0,
@@ -28,7 +28,7 @@ impl MovingSphere {
             time0,
             time1,
             radius,
-            mat_ptr: Rc::clone(&m),
+            mat_ptr: Arc::clone(&m),
         }
     }
     pub fn center(&self, time: f64) -> Vec3 {
@@ -59,7 +59,7 @@ impl Hittable for MovingSphere {
         rec.p = r.at(rec.t);
         let outward_normal: Vec3 = (rec.p - self.center(r.time())) / self.radius;
         rec.set_face_normal(r, &outward_normal);
-        rec.mat_ptr = Some(Rc::clone(&self.mat_ptr));
+        rec.mat_ptr = Some(Arc::clone(&self.mat_ptr));
         true
     }
     fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut crate::aabb::Aabb) -> bool {

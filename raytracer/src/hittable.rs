@@ -4,13 +4,13 @@ use crate::ray::Ray;
 use crate::rt_weekend::{degrees_to_radians, INFINITY};
 use crate::vec3::Point3;
 use crate::vec3::{dot, Vec3};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Default)]
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
-    pub mat_ptr: Option<Rc<dyn Material>>,
+    pub mat_ptr: Option<Arc<dyn Material>>,
     pub t: f64,
     pub u: f64,
     pub v: f64,
@@ -47,19 +47,19 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable {
+pub trait Hittable: Send + Sync {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
     fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool;
 }
 
 pub struct Translate {
-    pub ptr: Rc<dyn Hittable>,
+    pub ptr: Arc<dyn Hittable>,
     pub offset: Vec3,
 }
 impl Translate {
-    pub fn construct(p: Rc<dyn Hittable>, displacement: &Vec3) -> Self {
+    pub fn construct(p: Arc<dyn Hittable>, displacement: &Vec3) -> Self {
         Self {
-            ptr: Rc::clone(&p),
+            ptr: Arc::clone(&p),
             offset: *displacement,
         }
     }
@@ -88,14 +88,14 @@ impl Hittable for Translate {
 }
 
 pub struct RotateY {
-    pub ptr: Rc<dyn Hittable>,
+    pub ptr: Arc<dyn Hittable>,
     pub sin_theta: f64,
     pub cos_theta: f64,
     pub hasbox: bool,
     pub bbox: Aabb,
 }
 impl RotateY {
-    pub fn construct(p: Rc<dyn Hittable>, angle: f64) -> Self {
+    pub fn construct(p: Arc<dyn Hittable>, angle: f64) -> Self {
         let radians: f64 = degrees_to_radians(angle);
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
@@ -126,7 +126,7 @@ impl RotateY {
         }
         bbox = Aabb::construct(&mini, &maxi);
         Self {
-            ptr: Rc::clone(&p),
+            ptr: Arc::clone(&p),
             sin_theta,
             cos_theta,
             hasbox,

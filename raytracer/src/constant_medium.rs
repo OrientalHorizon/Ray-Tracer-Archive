@@ -4,26 +4,26 @@ use crate::material::{Isotropic, Material};
 use crate::ray::Ray;
 use crate::rt_weekend::{random_double, INFINITY};
 use crate::vec3::Color3;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct ConstantMedium {
-    pub boundary: Rc<dyn Hittable>,
-    pub phase_function: Rc<dyn Material>,
+    pub boundary: Arc<dyn Hittable>,
+    pub phase_function: Arc<dyn Material>,
     pub neg_inv_density: f64,
 }
 impl ConstantMedium {
-    // pub fn construct(b: Rc<dyn Hittable>, d: f64, a: Rc<dyn Texture>) -> Self {
+    // pub fn construct(b: Arc<dyn Hittable>, d: f64, a: Arc<dyn Texture>) -> Self {
     //     Self {
-    //         boundary: Rc::clone(&b),
+    //         boundary: Arc::clone(&b),
     //         neg_inv_density: -1.0 / d,
-    //         phase_function: Rc::new(Isotropic::construct(a)),
+    //         phase_function: Arc::new(Isotropic::construct(a)),
     //     }
     // }
-    pub fn construct_color(b: Rc<dyn Hittable>, d: f64, c: &Color3) -> Self {
+    pub fn construct_color(b: Arc<dyn Hittable>, d: f64, c: &Color3) -> Self {
         Self {
-            boundary: Rc::clone(&b),
+            boundary: Arc::clone(&b),
             neg_inv_density: -1.0 / d,
-            phase_function: Rc::new(Isotropic::construct_color(c)),
+            phase_function: Arc::new(Isotropic::construct_color(c)),
         }
     }
 }
@@ -65,7 +65,7 @@ impl Hittable for ConstantMedium {
 
         rec.normal = Color3::construct(&[1.0, 0.0, 0.0]); // arbitrary
         rec.front_face = true; // also arbitrary
-        rec.mat_ptr = Some(Rc::clone(&self.phase_function));
+        rec.mat_ptr = Some(Arc::clone(&self.phase_function));
 
         true
     }

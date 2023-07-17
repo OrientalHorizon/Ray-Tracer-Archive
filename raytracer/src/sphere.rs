@@ -4,12 +4,12 @@ use crate::material::Material;
 use crate::ray::Ray;
 use crate::rt_weekend::PI;
 use crate::vec3::{dot, Point3, Vec3};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Sphere {
     pub center: Point3,
     pub radius: f64,
-    pub mat_ptr: Rc<dyn Material>,
+    pub mat_ptr: Arc<dyn Material>,
 }
 
 impl Sphere {
@@ -19,7 +19,7 @@ impl Sphere {
     //         radius: 0.0,
     //     }
     // }
-    pub fn construct(center: &Point3, radius: f64, mat_ptr: Rc<dyn Material>) -> Self {
+    pub fn construct(center: &Point3, radius: f64, mat_ptr: Arc<dyn Material>) -> Self {
         Self {
             center: *center,
             radius,
@@ -57,7 +57,7 @@ impl Hittable for Sphere {
         let outward_normal: Vec3 = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, &outward_normal);
         Sphere::get_sphere_uv(&outward_normal, &mut rec.u, &mut rec.v);
-        rec.mat_ptr = Some(Rc::clone(&self.mat_ptr));
+        rec.mat_ptr = Some(Arc::clone(&self.mat_ptr));
         true
     }
     fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {

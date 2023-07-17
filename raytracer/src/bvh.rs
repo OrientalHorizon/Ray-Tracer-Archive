@@ -3,16 +3,16 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::hittable_list::HittableList;
 use crate::ray::Ray;
 use std::cmp::Ordering;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::vec::Vec;
 
 pub struct BVHNode {
-    left: Rc<dyn Hittable>,
-    right: Rc<dyn Hittable>,
+    left: Arc<dyn Hittable>,
+    right: Arc<dyn Hittable>,
     aabb: Aabb,
 }
 
-pub fn box_compare(a: &Rc<dyn Hittable>, b: &Rc<dyn Hittable>, axis: u32) -> Ordering {
+pub fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: u32) -> Ordering {
     let mut box_a = Aabb::new();
     let mut box_b = Aabb::new();
     if !a.bounding_box(0.0, 0.0, &mut box_a) || !b.bounding_box(0.0, 0.0, &mut box_b) {
@@ -52,21 +52,21 @@ pub fn box_compare(a: &Rc<dyn Hittable>, b: &Rc<dyn Hittable>, axis: u32) -> Ord
         _ => panic!("Invalid axis"),
     }
 }
-pub fn box_x_compare(a: &Rc<dyn Hittable>, b: &Rc<dyn Hittable>) -> Ordering {
+pub fn box_x_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
     box_compare(a, b, 0)
 }
-pub fn box_y_compare(a: &Rc<dyn Hittable>, b: &Rc<dyn Hittable>) -> Ordering {
+pub fn box_y_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
     box_compare(a, b, 1)
 }
-pub fn box_z_compare(a: &Rc<dyn Hittable>, b: &Rc<dyn Hittable>) -> Ordering {
+pub fn box_z_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
     box_compare(a, b, 2)
 }
 
 impl BVHNode {
-    pub fn new(left: Rc<dyn Hittable>, right: Rc<dyn Hittable>, aabb: &Aabb) -> Self {
+    pub fn new(left: Arc<dyn Hittable>, right: Arc<dyn Hittable>, aabb: &Aabb) -> Self {
         Self {
-            left: Rc::clone(&left),
-            right: Rc::clone(&right),
+            left: Arc::clone(&left),
+            right: Arc::clone(&right),
             aabb: *aabb,
         }
     }
@@ -74,7 +74,7 @@ impl BVHNode {
         Self::construct(&list.objects, 0, list.objects.len() as u32, time0, time1)
     }
     pub fn construct(
-        src_objects: &[Rc<dyn Hittable>],
+        src_objects: &[Arc<dyn Hittable>],
         start: u32,
         end: u32,
         time0: f64,
@@ -82,7 +82,7 @@ impl BVHNode {
     ) -> Self {
         let start = start as usize;
         let end = end as usize;
-        let mut objects: Vec<Rc<dyn Hittable>> = src_objects.to_vec();
+        let mut objects: Vec<Arc<dyn Hittable>> = src_objects.to_vec();
         let axis = rand::random::<u32>() % 3u32;
         let comparator = match axis {
             0 => box_x_compare,
@@ -90,11 +90,11 @@ impl BVHNode {
             _ => box_z_compare,
         };
         let object_span: usize = end - start;
-        let left: Rc<dyn Hittable>;
-        let right: Rc<dyn Hittable>;
+        let left: Arc<dyn Hittable>;
+        let right: Arc<dyn Hittable>;
         if object_span == 1 {
-            left = Rc::clone(&objects[start]);
-            right = Rc::clone(&objects[start]);
+            left = Arc::clone(&objects[start]);
+            right = Arc::clone(&objects[start]);
         } else if object_span == 2 {
             if comparator(&objects[start as usize], &objects[start + 1]) == Ordering::Less {
                 left = objects[start].clone();
@@ -106,14 +106,14 @@ impl BVHNode {
         } else {
             objects.sort_by(comparator);
             let mid = start + object_span / 2;
-            left = Rc::new(BVHNode::construct(
+            left = Arc::new(BVHNode::construct(
                 &objects,
                 start as u32,
                 mid as u32,
                 time0,
                 time1,
             ));
-            right = Rc::new(BVHNode::construct(
+            right = Arc::new(BVHNode::construct(
                 &objects, mid as u32, end as u32, time0, time1,
             ));
         }

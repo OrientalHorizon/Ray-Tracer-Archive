@@ -1,9 +1,9 @@
 use crate::perlin::Perlin;
 use crate::rt_weekend::clamp;
 use crate::vec3::{Color3, Point3};
-use std::rc::Rc;
+use std::sync::Arc;
 
-pub trait Texture {
+pub trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: &Point3) -> Color3;
 }
 
@@ -36,20 +36,20 @@ impl Texture for SolidColor {
 }
 
 pub struct CheckerTexture {
-    pub even: Rc<dyn Texture>,
-    pub odd: Rc<dyn Texture>,
+    pub even: Arc<dyn Texture>,
+    pub odd: Arc<dyn Texture>,
 }
 impl CheckerTexture {
-    // pub fn construct(ev: Rc<dyn Texture>, od: Rc<dyn Texture>) -> Self {
+    // pub fn construct(ev: Arc<dyn Texture>, od: Arc<dyn Texture>) -> Self {
     //     Self {
-    //         odd: Rc::clone(&od),
-    //         even: Rc::clone(&ev),
+    //         odd: Arc::clone(&od),
+    //         even: Arc::clone(&ev),
     //     }
     // }
     pub fn construct_color(c1: &Color3, c2: &Color3) -> Self {
         Self {
-            even: Rc::new(SolidColor::construct(c1)),
-            odd: Rc::new(SolidColor::construct(c2)),
+            even: Arc::new(SolidColor::construct(c1)),
+            odd: Arc::new(SolidColor::construct(c2)),
         }
     }
 }

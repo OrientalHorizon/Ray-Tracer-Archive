@@ -6,9 +6,9 @@ use crate::vec3::{
     dot, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3, Point3, Vec3,
 };
 use std::ops::Deref;
-use std::rc::Rc;
+use std::sync::Arc;
 
-pub trait Material {
+pub trait Material: Send + Sync {
     fn scatter(
         &self,
         r_in: &Ray,
@@ -23,7 +23,7 @@ pub trait Material {
 
 pub struct Lambertian {
     // pub albedo: Color3,
-    pub albedo: Rc<dyn Texture>,
+    pub albedo: Arc<dyn Texture>,
 }
 
 impl Lambertian {
@@ -34,12 +34,12 @@ impl Lambertian {
     // }
     pub fn construct(a: &Color3) -> Self {
         Self {
-            albedo: Rc::new(SolidColor::construct(a)),
+            albedo: Arc::new(SolidColor::construct(a)),
         }
     }
-    pub fn construct_texture(a: Rc<dyn Texture>) -> Self {
+    pub fn construct_texture(a: Arc<dyn Texture>) -> Self {
         Self {
-            albedo: Rc::clone(&a),
+            albedo: Arc::clone(&a),
         }
     }
 }
@@ -157,17 +157,17 @@ impl Material for Dielectric {
 }
 
 pub struct DiffuseLight {
-    emit: Rc<dyn Texture>,
+    emit: Arc<dyn Texture>,
 }
 impl DiffuseLight {
-    // pub fn construct(emit: Rc<dyn Texture>) -> Self {
+    // pub fn construct(emit: Arc<dyn Texture>) -> Self {
     //     Self {
-    //         emit: Rc::clone(&emit),
+    //         emit: Arc::clone(&emit),
     //     }
     // }
     pub fn construct_color(emit: &Color3) -> Self {
         Self {
-            emit: Rc::new(SolidColor::construct(emit)),
+            emit: Arc::new(SolidColor::construct(emit)),
         }
     }
 }
@@ -187,17 +187,17 @@ impl Material for DiffuseLight {
 }
 
 pub struct Isotropic {
-    albedo: Rc<dyn Texture>,
+    albedo: Arc<dyn Texture>,
 }
 impl Isotropic {
-    // pub fn construct(albedo: Rc<dyn Texture>) -> Self {
+    // pub fn construct(albedo: Arc<dyn Texture>) -> Self {
     //     Self {
-    //         albedo: Rc::clone(&albedo),
+    //         albedo: Arc::clone(&albedo),
     //     }
     // }
     pub fn construct_color(albedo: &Color3) -> Self {
         Self {
-            albedo: Rc::new(SolidColor::construct(albedo)),
+            albedo: Arc::new(SolidColor::construct(albedo)),
         }
     }
 }

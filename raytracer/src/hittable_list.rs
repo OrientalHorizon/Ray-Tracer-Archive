@@ -4,12 +4,12 @@ use crate::hittable;
 use crate::ray::Ray;
 
 use hittable::{HitRecord, Hittable};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::vec::Vec;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct HittableList {
-    pub objects: Vec<Rc<dyn Hittable>>,
+    pub objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -18,7 +18,7 @@ impl HittableList {
             objects: Vec::new(),
         }
     }
-    pub fn construct(object: Rc<dyn Hittable>) -> Self {
+    pub fn construct(object: Arc<dyn Hittable>) -> Self {
         Self {
             objects: {
                 let vec = vec![object];
@@ -29,7 +29,7 @@ impl HittableList {
     // pub fn clear(&mut self) {
     //     self.objects.clear();
     // }
-    pub fn add(&mut self, object: Rc<dyn Hittable>) {
+    pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object);
     }
 }

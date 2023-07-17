@@ -3,10 +3,10 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::{Point3, Vec3};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct XyRect {
-    pub mp: Rc<dyn Material>,
+    pub mp: Arc<dyn Material>,
     pub x0: f64,
     pub x1: f64,
     pub y0: f64,
@@ -14,9 +14,9 @@ pub struct XyRect {
     pub k: f64,
 }
 impl XyRect {
-    pub fn construct(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, mat: Rc<dyn Material>) -> Self {
+    pub fn construct(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, mat: Arc<dyn Material>) -> Self {
         Self {
-            mp: Rc::clone(&mat),
+            mp: Arc::clone(&mat),
             x0,
             x1,
             y0,
@@ -40,7 +40,7 @@ impl Hittable for XyRect {
         rec.v = (y - self.y0) / (self.y1 - self.y0);
         rec.t = t;
         rec.set_face_normal(r, &Vec3::construct(&[0.0, 0.0, 1.0]));
-        rec.mat_ptr = Some(Rc::clone(&self.mp));
+        rec.mat_ptr = Some(Arc::clone(&self.mp));
         rec.p = r.at(t);
         true
     }
@@ -55,7 +55,7 @@ impl Hittable for XyRect {
 }
 
 pub struct XzRect {
-    pub mp: Rc<dyn Material>,
+    pub mp: Arc<dyn Material>,
     pub x0: f64,
     pub x1: f64,
     pub z0: f64,
@@ -63,9 +63,9 @@ pub struct XzRect {
     pub k: f64,
 }
 impl XzRect {
-    pub fn construct(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, mat: Rc<dyn Material>) -> Self {
+    pub fn construct(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, mat: Arc<dyn Material>) -> Self {
         Self {
-            mp: Rc::clone(&mat),
+            mp: Arc::clone(&mat),
             x0,
             x1,
             z0,
@@ -89,7 +89,7 @@ impl Hittable for XzRect {
         rec.v = (z - self.z0) / (self.z1 - self.z0);
         rec.t = t;
         rec.set_face_normal(r, &Vec3::construct(&[0.0, 1.0, 0.0]));
-        rec.mat_ptr = Some(Rc::clone(&self.mp));
+        rec.mat_ptr = Some(Arc::clone(&self.mp));
         rec.p = r.at(t);
         true
     }
@@ -104,7 +104,7 @@ impl Hittable for XzRect {
 }
 
 pub struct YzRect {
-    pub mp: Rc<dyn Material>,
+    pub mp: Arc<dyn Material>,
     pub y0: f64,
     pub y1: f64,
     pub z0: f64,
@@ -112,9 +112,9 @@ pub struct YzRect {
     pub k: f64,
 }
 impl YzRect {
-    pub fn construct(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, mat: Rc<dyn Material>) -> Self {
+    pub fn construct(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, mat: Arc<dyn Material>) -> Self {
         Self {
-            mp: Rc::clone(&mat),
+            mp: Arc::clone(&mat),
             y0,
             y1,
             z0,
@@ -138,7 +138,7 @@ impl Hittable for YzRect {
         rec.v = (z - self.z0) / (self.z1 - self.z0);
         rec.t = t;
         rec.set_face_normal(r, &Vec3::construct(&[1.0, 0.0, 0.0]));
-        rec.mat_ptr = Some(Rc::clone(&self.mp));
+        rec.mat_ptr = Some(Arc::clone(&self.mp));
         rec.p = r.at(t);
         true
     }

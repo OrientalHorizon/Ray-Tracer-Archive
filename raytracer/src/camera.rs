@@ -1,6 +1,8 @@
 use crate::ray::Ray;
 use crate::rt_weekend::{degrees_to_radians, random_double_range};
 use crate::vec3::{cross, random_in_unit_disk, Point3, Vec3};
+
+#[derive(Clone, Default)]
 pub struct Camera {
     pub origin: Point3,
     pub lower_left_corner: Point3,
