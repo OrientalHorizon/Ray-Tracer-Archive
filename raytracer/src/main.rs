@@ -578,7 +578,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 800;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 10000;
+    const SAMPLES_PER_PIXEL: u32 = 114;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -628,12 +628,12 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 20;
+    let thread_num: u32 = 19;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
             let mut pixel_color: Color3 = Color3::construct(&[0.0, 0.0, 0.0]);
-
+            
             let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
             let mut recv: Vec<mpsc::Receiver<Color3>> = Vec::new();
             for _s in 0..thread_num {
@@ -641,6 +641,7 @@ fn main() {
                 recv.push(rx);
                 let cam = cam.clone();
                 let world = world.clone();
+                let background = background.clone();
                 let max_depth = MAX_DEPTH;
                 let image_width = IMAGE_WIDTH;
                 let image_height = IMAGE_HEIGHT;
@@ -648,7 +649,7 @@ fn main() {
                 let j_f64 = j as f64;
 
                 let handle = thread::spawn(move || {
-                    for _t in 0..SAMPLES_PER_PIXEL / thread_num {
+                    for _t in 0..(SAMPLES_PER_PIXEL / thread_num) {
                         let u: f64 = (i_f64 + random_double()) / (image_width - 1) as f64;
                         let v: f64 = (j_f64 + random_double()) / (image_height - 1) as f64;
                         let r: Ray = cam.get_ray(u, v);
@@ -658,12 +659,19 @@ fn main() {
                 });
                 handles.push(handle);
             }
-            for rec in recv.iter().take(SAMPLES_PER_PIXEL as usize) {
-                pixel_color += rec.recv().unwrap();
+            let mut cnt = 0u32;
+            // 第一层遍历：遍历接收者
+            for rec in recv {
+                // 第二层遍历：遍历接收者收到的数据
+                for received in rec {
+                    pixel_color += received;
+                    cnt += 1;
+                }
             }
             for thread in handles {
                 thread.join().unwrap();
             }
+            assert_eq!(cnt, SAMPLES_PER_PIXEL);
             let rgb: [u8; 3] = write_color(&pixel_color, SAMPLES_PER_PIXEL);
             *pixel = image::Rgb(rgb);
             progress.inc(1);
