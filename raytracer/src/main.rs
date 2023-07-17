@@ -38,8 +38,8 @@ use sphere::Sphere;
 use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
 use vec3::{Color3, Point3, Vec3};
 
-use std::thread;
 use std::sync::mpsc;
+use std::thread;
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -282,7 +282,9 @@ pub fn cornell_box() -> HittableList {
     objects.add(Arc::new(YzRect::construct(
         0.0, 555.0, 0.0, 555.0, 555.0, green,
     )));
-    objects.add(Arc::new(YzRect::construct(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add(Arc::new(YzRect::construct(
+        0.0, 555.0, 0.0, 555.0, 0.0, red,
+    )));
     objects.add(Arc::new(XzRect::construct(
         213.0, 343.0, 227.0, 332.0, 554.0, light,
     )));
@@ -368,7 +370,9 @@ pub fn cornell_smoke() -> HittableList {
     objects.add(Arc::new(YzRect::construct(
         0.0, 555.0, 0.0, 555.0, 555.0, green,
     )));
-    objects.add(Arc::new(YzRect::construct(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add(Arc::new(YzRect::construct(
+        0.0, 555.0, 0.0, 555.0, 0.0, red,
+    )));
     objects.add(Arc::new(XzRect::construct(
         113.0, 443.0, 127.0, 432.0, 554.0, light,
     )));
@@ -574,7 +578,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 800;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 5000;
+    const SAMPLES_PER_PIXEL: u32 = 10000;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -624,7 +628,7 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 25;
+    let thread_num: u32 = 20;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
@@ -637,7 +641,6 @@ fn main() {
                 recv.push(rx);
                 let cam = cam.clone();
                 let world = world.clone();
-                let background = background.clone();
                 let max_depth = MAX_DEPTH;
                 let image_width = IMAGE_WIDTH;
                 let image_height = IMAGE_HEIGHT;
