@@ -14,6 +14,7 @@ mod hittable;
 mod hittable_list;
 mod material;
 mod moving_sphere;
+mod onb;
 mod perlin;
 mod ray;
 mod rt_weekend;
@@ -581,7 +582,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image2.jpg");
+    let path = std::path::Path::new("output/book3/image3.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 

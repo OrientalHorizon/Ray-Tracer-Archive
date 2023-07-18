@@ -1,7 +1,7 @@
-use crate::vec3::Vec3;
+use crate::vec3::{cross, Vec3};
 
 pub struct Onb {
-    pub axis: [Vec3; 3];
+    pub axis: [Vec3; 3],
 }
 impl std::ops::Index<usize> for Onb {
     type Output = Vec3;
@@ -18,13 +18,13 @@ impl Onb {
     pub fn build_from_w(n: &Vec3) -> Self {
         let mut axes = [Vec3::new(); 3];
         axes[2] = n.unit();
-        let a = if abs(axes[2].x()) > 0.9 {
-            Vec3::new(0.0, 1.0, 0.0)
+        let a = if (axes[2].x()).abs() > 0.9 {
+            Vec3::construct(&[0.0, 1.0, 0.0])
         } else {
-            Vec3::new(1.0, 0.0, 0.0)
+            Vec3::construct(&[1.0, 0.0, 0.0])
         };
-        axes[1] = axes[2].cross(a).unit();
-        axes[0] = axes[2].cross(axes[1]);
+        axes[1] = cross(&axes[2], &a).unit();
+        axes[0] = cross(&axes[2], &axes[1]);
         Self { axis: axes }
     }
     pub fn u(&self) -> Vec3 {

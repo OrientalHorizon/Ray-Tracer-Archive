@@ -1,10 +1,11 @@
 use crate::hittable::HitRecord;
+use crate::onb::Onb;
 use crate::ray::Ray;
 use crate::rt_weekend::{random_double, PI};
 use crate::texture::{SolidColor, Texture};
 use crate::vec3::{
-    dot, random_in_hemisphere, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3,
-    Point3, Vec3,
+    dot, random_cosine_direction, random_in_hemisphere, random_in_unit_sphere, random_unit_vector,
+    reflect, refract, Color3, Point3, Vec3,
 };
 use std::ops::Deref;
 use std::sync::Arc;
@@ -65,10 +66,16 @@ impl Material for Lambertian {
         // if scatter_direction.near_zero() {
         //     scatter_direction = rec.normal;
         // }
-        let direction = random_in_hemisphere(&rec.normal);
+        // let direction = random_in_hemisphere(&rec.normal);
+        // *scattered = Ray::construct(&rec.p, &direction.unit(), r_in.time());
+        // *alb = self.albedo.value(rec.u, rec.v, &rec.p);
+        // *pdf = 0.5 / PI;
+
+        let uvw = Onb::build_from_w(&rec.normal);
+        let direction = uvw.local(&random_cosine_direction());
         *scattered = Ray::construct(&rec.p, &direction.unit(), r_in.time());
         *alb = self.albedo.value(rec.u, rec.v, &rec.p);
-        *pdf = 0.5 / PI;
+        *pdf = dot(&uvw.w(), &scattered.direction()) / PI;
         true
     }
     fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
