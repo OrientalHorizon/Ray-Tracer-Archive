@@ -15,19 +15,19 @@ mod hittable_list;
 mod material;
 mod moving_sphere;
 mod onb;
+mod pdf;
 mod perlin;
 mod ray;
 mod rt_weekend;
 mod sphere;
-mod pdf;
 mod texture;
 mod vec3;
 
 use aarect::{XyRect, XzRect, YzRect};
 use boxes::Box;
 use bvh::BVHNode;
-use pdf::{CosinePdf, Pdf};
 use camera::Camera;
+use pdf::{CosinePdf, HittablePdf, Pdf};
 // use constant_medium::ConstantMedium;
 use hittable::{FlipFace, HitRecord, Hittable, RotateY, Translate};
 use hittable_list::HittableList;
@@ -58,7 +58,13 @@ pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     }
 }
 
-pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32) -> Color3 {
+pub fn ray_color(
+    r: &Ray,
+    background: &Color3,
+    world: &dyn Hittable,
+    lights: Arc<dyn Hittable>,
+    depth: i32,
+) -> Color3 {
     let mut rec: HitRecord = HitRecord::new();
     if depth <= 0 {
         return Color3::new();
@@ -106,9 +112,13 @@ pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32)
     // pdf = distance_squared / (light_cosine * light_area);
     // scattered = Ray::construct(&rec.p, &to_light, r.time());
 
-    let p = CosinePdf::construct(&rec.normal);
-    scattered = Ray::construct(&rec.p, &p.generate(), r.time());
-    pdf = p.value(&scattered.direction());
+    // let p = CosinePdf::construct(&rec.normal);
+    // scattered = Ray::construct(&rec.p, &p.generate(), r.time());
+    // pdf = p.value(&scattered.direction());
+
+    let light_pdf = HittablePdf::construct(lights.clone(), &rec.p);
+    scattered = Ray::construct(&rec.p, &light_pdf.generate(), r.time());
+    pdf = light_pdf.value(&scattered.direction());
 
     emitted
         + albedo
@@ -117,7 +127,7 @@ pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32)
                 .as_ref()
                 .unwrap()
                 .scattering_pdf(r, &rec, &scattered)
-            * ray_color(&scattered, background, world, depth - 1)
+            * ray_color(&scattered, background, world, lights, depth - 1)
             / pdf
 }
 
@@ -613,7 +623,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image6.jpg");
+    let path = std::path::Path::new("output/book3/image7.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -621,13 +631,23 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 600;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 100;
+    const SAMPLES_PER_PIXEL: u32 = 10;
     const MAX_DEPTH: i32 = 50;
 
     // World
     // let mut world = random_scene();
 
     let world: HittableList = cornell_box();
+    let lights: Arc<dyn Hittable> = Arc::new(XzRect::construct(
+        213.0,
+        343.0,
+        227.0,
+        332.0,
+        554.0,
+        Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
+            15.0, 15.0, 15.0,
+        ]))),
+    ));
 
     let lookfrom = Point3::construct(&[278.0, 278.0, -800.0]);
     let lookat = Point3::construct(&[278.0, 278.0, 0.0]);
@@ -671,7 +691,7 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 20;
+    let thread_num: u32 = 10;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
@@ -689,14 +709,21 @@ fn main() {
                 let image_height = IMAGE_HEIGHT;
                 let i_f64 = i as f64;
                 let j_f64 = j as f64;
+                let lights = lights.clone();
 
                 let handle = thread::spawn(move || {
                     for _t in 0..(SAMPLES_PER_PIXEL / thread_num) {
                         let u: f64 = (i_f64 + random_double()) / (image_width - 1) as f64;
                         let v: f64 = (j_f64 + random_double()) / (image_height - 1) as f64;
                         let r: Ray = cam.get_ray(u, v);
-                        tx.send(ray_color(&r, &background, &world, max_depth))
-                            .unwrap();
+                        tx.send(ray_color(
+                            &r,
+                            &background,
+                            &world,
+                            lights.clone(),
+                            max_depth,
+                        ))
+                        .unwrap();
                     }
                 });
                 handles.push(handle);

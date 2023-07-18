@@ -50,6 +50,12 @@ impl HitRecord {
 pub trait Hittable: Send + Sync {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
     fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool;
+    fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
+        0.0
+    }
+    fn random(&self, o: &Vec3) -> Vec3 {
+        Vec3::construct(&[1.0, 0.0, 0.0])
+    }
 }
 
 pub struct Translate {
@@ -176,7 +182,9 @@ pub struct FlipFace {
 }
 impl FlipFace {
     pub fn construct(p: Arc<dyn Hittable>) -> Self {
-        Self { ptr: Arc::clone(&p) }
+        Self {
+            ptr: Arc::clone(&p),
+        }
     }
 }
 impl Hittable for FlipFace {
