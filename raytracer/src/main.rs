@@ -19,15 +19,17 @@ mod perlin;
 mod ray;
 mod rt_weekend;
 mod sphere;
+mod pdf;
 mod texture;
 mod vec3;
 
 use aarect::{XyRect, XzRect, YzRect};
 use boxes::Box;
 use bvh::BVHNode;
+use pdf::{CosinePdf, Pdf};
 use camera::Camera;
 // use constant_medium::ConstantMedium;
-use hittable::{HitRecord, Hittable, RotateY, Translate};
+use hittable::{FlipFace, HitRecord, Hittable, RotateY, Translate};
 use hittable_list::HittableList;
 use image::GenericImageView;
 //use material::DiffuseLight;
@@ -67,7 +69,11 @@ pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32)
 
     let mut scattered: Ray = Ray::new();
     // let attenuation: Color3 = Color3::new();
-    let emitted = rec.mat_ptr.as_ref().unwrap().emitted(rec.u, rec.v, &rec.p);
+    let emitted = rec
+        .mat_ptr
+        .as_ref()
+        .unwrap()
+        .emitted(&r, &rec, rec.u, rec.v, &rec.p);
 
     let mut pdf = 0.0;
     let mut albedo: Color3 = Color3::new();
@@ -80,25 +86,29 @@ pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32)
         return emitted;
     }
 
-    let on_light = Point3::construct(&[
-        random_double_range(213.0, 243.0),
-        554.0,
-        random_double_range(227.0, 332.0),
-    ]);
-    let mut to_light = on_light - rec.p;
-    let distance_squared = to_light.length_squared();
-    to_light = to_light.unit();
-    if dot(&to_light, &rec.normal) < 0.0 {
-        return emitted;
-    }
+    // let on_light = Point3::construct(&[
+    //     random_double_range(213.0, 243.0),
+    //     554.0,
+    //     random_double_range(227.0, 332.0),
+    // ]);
+    // let mut to_light = on_light - rec.p;
+    // let distance_squared = to_light.length_squared();
+    // to_light = to_light.unit();
+    // if dot(&to_light, &rec.normal) < 0.0 {
+    //     return emitted;
+    // }
 
-    let light_area = (343.0 - 213.0) * (332.0 - 227.0);
-    let light_cosine = to_light.y().abs();
-    if (light_cosine < 0.0000001) {
-        return emitted;
-    }
-    pdf = distance_squared / (light_cosine * light_area);
-    scattered = Ray::construct(&rec.p, &to_light, r.time());
+    // let light_area = (343.0 - 213.0) * (332.0 - 227.0);
+    // let light_cosine = to_light.y().abs();
+    // if (light_cosine < 0.0000001) {
+    //     return emitted;
+    // }
+    // pdf = distance_squared / (light_cosine * light_area);
+    // scattered = Ray::construct(&rec.p, &to_light, r.time());
+
+    let p = CosinePdf::construct(&rec.normal);
+    scattered = Ray::construct(&rec.p, &p.generate(), r.time());
+    pdf = p.value(&scattered.direction());
 
     emitted
         + albedo
@@ -318,9 +328,9 @@ pub fn cornell_box() -> HittableList {
     objects.add(Arc::new(YzRect::construct(
         0.0, 555.0, 0.0, 555.0, 0.0, red,
     )));
-    objects.add(Arc::new(XzRect::construct(
+    objects.add(Arc::new(FlipFace::construct(Arc::new(XzRect::construct(
         213.0, 343.0, 227.0, 332.0, 554.0, light,
-    )));
+    )))));
     objects.add(Arc::new(XzRect::construct(
         0.0,
         555.0,
@@ -603,7 +613,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image4.jpg");
+    let path = std::path::Path::new("output/book3/image6.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 

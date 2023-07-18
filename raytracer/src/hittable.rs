@@ -170,3 +170,24 @@ impl Hittable for RotateY {
         self.hasbox
     }
 }
+
+pub struct FlipFace {
+    ptr: Arc<dyn Hittable>,
+}
+impl FlipFace {
+    pub fn construct(p: Arc<dyn Hittable>) -> Self {
+        Self { ptr: Arc::clone(&p) }
+    }
+}
+impl Hittable for FlipFace {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        if !self.ptr.hit(r, t_min, t_max, rec) {
+            return false;
+        }
+        rec.front_face = !rec.front_face;
+        true
+    }
+    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool {
+        self.ptr.bounding_box(time0, time1, output_box)
+    }
+}
