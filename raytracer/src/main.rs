@@ -27,7 +27,7 @@ use aarect::{XyRect, XzRect, YzRect};
 use boxes::Box;
 use bvh::BVHNode;
 use camera::Camera;
-use pdf::{CosinePdf, HittablePdf, Pdf};
+use pdf::{CosinePdf, HittablePdf, MixturePdf, Pdf};
 // use constant_medium::ConstantMedium;
 use hittable::{FlipFace, HitRecord, Hittable, RotateY, Translate};
 use hittable_list::HittableList;
@@ -116,9 +116,12 @@ pub fn ray_color(
     // scattered = Ray::construct(&rec.p, &p.generate(), r.time());
     // pdf = p.value(&scattered.direction());
 
+    let p0 = HittablePdf::construct(lights.clone(), &rec.p);
+    let p1 = CosinePdf::construct(&rec.normal);
+    let mixture_pdf = MixturePdf::construct(Arc::new(p0), Arc::new(p1));
     let light_pdf = HittablePdf::construct(lights.clone(), &rec.p);
-    scattered = Ray::construct(&rec.p, &light_pdf.generate(), r.time());
-    pdf = light_pdf.value(&scattered.direction());
+    scattered = Ray::construct(&rec.p, &mixture_pdf.generate(), r.time());
+    pdf = mixture_pdf.value(&scattered.direction());
 
     emitted
         + albedo
@@ -623,7 +626,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image7.jpg");
+    let path = std::path::Path::new("output/book3/image8.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -631,7 +634,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 600;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 10;
+    const SAMPLES_PER_PIXEL: u32 = 1080;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -691,7 +694,7 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 10;
+    let thread_num: u32 = 18;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
