@@ -38,7 +38,7 @@ use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
 use sphere::Sphere;
 use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
-use vec3::{Color3, Point3, Vec3};
+use vec3::{dot, Color3, Point3, Vec3};
 
 use std::sync::mpsc;
 use std::thread;
@@ -66,7 +66,7 @@ pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32)
     }
 
     let mut scattered: Ray = Ray::new();
-    let mut attenuation: Color3 = Color3::new();
+    // let attenuation: Color3 = Color3::new();
     let emitted = rec.mat_ptr.as_ref().unwrap().emitted(rec.u, rec.v, &rec.p);
 
     let mut pdf = 0.0;
@@ -79,6 +79,27 @@ pub fn ray_color(r: &Ray, background: &Color3, world: &dyn Hittable, depth: i32)
     {
         return emitted;
     }
+
+    let on_light = Point3::construct(&[
+        random_double_range(213.0, 243.0),
+        554.0,
+        random_double_range(227.0, 332.0),
+    ]);
+    let mut to_light = on_light - rec.p;
+    let distance_squared = to_light.length_squared();
+    to_light = to_light.unit();
+    if dot(&to_light, &rec.normal) < 0.0 {
+        return emitted;
+    }
+
+    let light_area = (343.0 - 213.0) * (332.0 - 227.0);
+    let light_cosine = to_light.y().abs();
+    if (light_cosine < 0.0000001) {
+        return emitted;
+    }
+    pdf = distance_squared / (light_cosine * light_area);
+    scattered = Ray::construct(&rec.p, &to_light, r.time());
+
     emitted
         + albedo
             * rec
@@ -582,7 +603,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image3.jpg");
+    let path = std::path::Path::new("output/book3/image4.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
