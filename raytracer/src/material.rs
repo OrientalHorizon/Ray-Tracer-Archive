@@ -1,9 +1,10 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
-use crate::rt_weekend::random_double;
+use crate::rt_weekend::{random_double, PI};
 use crate::texture::{SolidColor, Texture};
 use crate::vec3::{
-    dot, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3, Point3, Vec3,
+    dot, random_in_hemisphere, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3,
+    Point3, Vec3,
 };
 use std::ops::Deref;
 use std::sync::Arc;
@@ -13,11 +14,17 @@ pub trait Material: Send + Sync {
         &self,
         r_in: &Ray,
         rec: &HitRecord,
-        attenuation: &mut Vec3,
+        albedo: &mut Color3,
         scattered: &mut Ray,
-    ) -> bool;
+        pdf: &mut f64,
+    ) -> bool {
+        false
+    }
     fn emitted(&self, _u: f64, _v: f64, _p: &Point3) -> Color3 {
         Color3::construct(&[0.0, 0.0, 0.0])
+    }
+    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        0.0
     }
 }
 
@@ -49,112 +56,122 @@ impl Material for Lambertian {
         &self,
         r_in: &Ray,
         rec: &HitRecord,
-        attenuation: &mut Vec3,
+        alb: &mut Color3,
         scattered: &mut Ray,
+        pdf: &mut f64,
     ) -> bool {
-        let mut scatter_direction: Vec3 = rec.normal + random_unit_vector();
+        // let mut scatter_direction: Vec3 = rec.normal + random_unit_vector();
 
-        if scatter_direction.near_zero() {
-            scatter_direction = rec.normal;
-        }
-
-        *scattered = Ray::construct(&rec.p, &scatter_direction, r_in.time());
-        *attenuation = self.albedo.deref().value(rec.u, rec.v, &rec.p);
+        // if scatter_direction.near_zero() {
+        //     scatter_direction = rec.normal;
+        // }
+        let direction = random_in_hemisphere(&rec.normal);
+        *scattered = Ray::construct(&rec.p, &direction.unit(), r_in.time());
+        *alb = self.albedo.value(rec.u, rec.v, &rec.p);
+        *pdf = 0.5 / PI;
         true
     }
-}
-
-pub struct Metal {
-    albedo: Color3,
-    fuzz: f64,
-}
-
-impl Metal {
-    // pub fn new() -> Self {
-    //     Self {
-    //         albedo: Color3::new(),
-    //         fuzz: 0.0,
-    //     }
-    // }
-    pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
-        Self {
-            albedo: *albedo,
-            fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
-        }
-    }
-}
-
-impl Material for Metal {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Vec3,
-        scattered: &mut Ray,
-    ) -> bool {
-        let reflected: Vec3 = reflect(&r_in.direction().unit(), &rec.normal);
-        *scattered = Ray::construct(
-            &rec.p,
-            &(reflected + self.fuzz * random_in_unit_sphere()),
-            r_in.time(),
-        );
-        *attenuation = self.albedo;
-        dot(&scattered.direction(), &rec.normal) > 0.0
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Dielectric {
-    ir: f64, // Index of Refraction
-}
-
-impl Dielectric {
-    // pub fn new() -> Self {
-    //     Self { ir: 1.0 }
-    // }
-    pub fn construct(ir: f64) -> Self {
-        Self { ir }
-    }
-
-    pub fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
-        let mut r0: f64 = (1.0 - ref_idx) / (1.0 + ref_idx);
-        r0 *= r0;
-        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
-    }
-}
-
-impl Material for Dielectric {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Vec3,
-        scattered: &mut Ray,
-    ) -> bool {
-        *attenuation = Vec3::construct(&[1.0, 1.0, 1.0]);
-        let refraction_ratio = if rec.front_face {
-            1.0 / self.ir
+    fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        let cosine: f64 = dot(&rec.normal, &scattered.direction().unit());
+        if cosine < 0.0 {
+            0.0
         } else {
-            self.ir
-        };
-
-        let unit_direction = r_in.direction().unit();
-        let cos_theta: f64 = dot(&(-unit_direction), &rec.normal).min(1.0);
-        let sin_theta: f64 = (1.0 - cos_theta * cos_theta).sqrt();
-
-        let cannot_refract: bool = refraction_ratio * sin_theta > 1.0;
-
-        let direction: Vec3 =
-            if cannot_refract || Self::reflectance(cos_theta, refraction_ratio) > random_double() {
-                reflect(&unit_direction, &rec.normal)
-            } else {
-                refract(&unit_direction, &rec.normal, refraction_ratio)
-            };
-
-        *scattered = Ray::construct(&rec.p, &direction, r_in.time());
-        true
+            cosine / PI
+        }
     }
 }
+
+// pub struct Metal {
+//     albedo: Color3,
+//     fuzz: f64,
+// }
+
+// impl Metal {
+//     // pub fn new() -> Self {
+//     //     Self {
+//     //         albedo: Color3::new(),
+//     //         fuzz: 0.0,
+//     //     }
+//     // }
+//     pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
+//         Self {
+//             albedo: *albedo,
+//             fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
+//         }
+//     }
+// }
+
+// impl Material for Metal {
+//     fn scatter(
+//         &self,
+//         r_in: &Ray,
+//         rec: &HitRecord,
+//         attenuation: &mut Vec3,
+//         scattered: &mut Ray,
+//     ) -> bool {
+//         let reflected: Vec3 = reflect(&r_in.direction().unit(), &rec.normal);
+//         *scattered = Ray::construct(
+//             &rec.p,
+//             &(reflected + self.fuzz * random_in_unit_sphere()),
+//             r_in.time(),
+//         );
+//         *attenuation = self.albedo;
+//         dot(&scattered.direction(), &rec.normal) > 0.0
+//     }
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct Dielectric {
+//     ir: f64, // Index of Refraction
+// }
+
+// impl Dielectric {
+//     // pub fn new() -> Self {
+//     //     Self { ir: 1.0 }
+//     // }
+//     pub fn construct(ir: f64) -> Self {
+//         Self { ir }
+//     }
+
+//     pub fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+//         let mut r0: f64 = (1.0 - ref_idx) / (1.0 + ref_idx);
+//         r0 *= r0;
+//         r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+//     }
+// }
+
+// impl Material for Dielectric {
+//     fn scatter(
+//         &self,
+//         r_in: &Ray,
+//         rec: &HitRecord,
+//         attenuation: &mut Vec3,
+//         scattered: &mut Ray,
+//     ) -> bool {
+//         *attenuation = Vec3::construct(&[1.0, 1.0, 1.0]);
+//         let refraction_ratio = if rec.front_face {
+//             1.0 / self.ir
+//         } else {
+//             self.ir
+//         };
+
+//         let unit_direction = r_in.direction().unit();
+//         let cos_theta: f64 = dot(&(-unit_direction), &rec.normal).min(1.0);
+//         let sin_theta: f64 = (1.0 - cos_theta * cos_theta).sqrt();
+
+//         let cannot_refract: bool = refraction_ratio * sin_theta > 1.0;
+
+//         let direction: Vec3 =
+//             if cannot_refract || Self::reflectance(cos_theta, refraction_ratio) > random_double() {
+//                 reflect(&unit_direction, &rec.normal)
+//             } else {
+//                 refract(&unit_direction, &rec.normal, refraction_ratio)
+//             };
+
+//         *scattered = Ray::construct(&rec.p, &direction, r_in.time());
+//         true
+//     }
+// }
 
 pub struct DiffuseLight {
     emit: Arc<dyn Texture>,
@@ -172,45 +189,45 @@ impl DiffuseLight {
     }
 }
 impl Material for DiffuseLight {
-    fn scatter(
-        &self,
-        _r_in: &Ray,
-        _rec: &HitRecord,
-        _attenuation: &mut Vec3,
-        _scattered: &mut Ray,
-    ) -> bool {
-        false
-    }
+    // fn scatter(
+    //     &self,
+    //     _r_in: &Ray,
+    //     _rec: &HitRecord,
+    //     _attenuation: &mut Vec3,
+    //     _scattered: &mut Ray,
+    // ) -> bool {
+    //     false
+    // }
     fn emitted(&self, u: f64, v: f64, p: &Vec3) -> Vec3 {
         self.emit.deref().value(u, v, p)
     }
 }
 
-pub struct Isotropic {
-    albedo: Arc<dyn Texture>,
-}
-impl Isotropic {
-    // pub fn construct(albedo: Arc<dyn Texture>) -> Self {
-    //     Self {
-    //         albedo: Arc::clone(&albedo),
-    //     }
-    // }
-    pub fn construct_color(albedo: &Color3) -> Self {
-        Self {
-            albedo: Arc::new(SolidColor::construct(albedo)),
-        }
-    }
-}
-impl Material for Isotropic {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Vec3,
-        scattered: &mut Ray,
-    ) -> bool {
-        *scattered = Ray::construct(&rec.p, &random_in_unit_sphere(), r_in.time());
-        *attenuation = self.albedo.deref().value(rec.u, rec.v, &rec.p);
-        true
-    }
-}
+// pub struct Isotropic {
+//     albedo: Arc<dyn Texture>,
+// }
+// impl Isotropic {
+//     // pub fn construct(albedo: Arc<dyn Texture>) -> Self {
+//     //     Self {
+//     //         albedo: Arc::clone(&albedo),
+//     //     }
+//     // }
+//     pub fn construct_color(albedo: &Color3) -> Self {
+//         Self {
+//             albedo: Arc::new(SolidColor::construct(albedo)),
+//         }
+//     }
+// }
+// impl Material for Isotropic {
+//     fn scatter(
+//         &self,
+//         r_in: &Ray,
+//         rec: &HitRecord,
+//         attenuation: &mut Vec3,
+//         scattered: &mut Ray,
+//     ) -> bool {
+//         *scattered = Ray::construct(&rec.p, &random_in_unit_sphere(), r_in.time());
+//         *attenuation = self.albedo.deref().value(rec.u, rec.v, &rec.p);
+//         true
+//     }
+// }
