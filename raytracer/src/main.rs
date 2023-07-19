@@ -640,7 +640,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image10-new.jpg");
+    let path = std::path::Path::new("output/book3/image11.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -648,7 +648,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 600;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 540;
+    const SAMPLES_PER_PIXEL: u32 = 1080;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -656,16 +656,16 @@ fn main() {
 
     let world: HittableList = cornell_box();
     let mut lights = HittableList::new();
-    // lights.add(Arc::new(XzRect::construct(
-    //     213.0,
-    //     343.0,
-    //     227.0,
-    //     332.0,
-    //     554.0,
-    //     Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
-    //         15.0, 15.0, 15.0,
-    //     ]))),
-    // )));
+    lights.add(Arc::new(XzRect::construct(
+        213.0,
+        343.0,
+        227.0,
+        332.0,
+        554.0,
+        Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
+            15.0, 15.0, 15.0,
+        ]))),
+    )));
     lights.add(Arc::new(Sphere::construct(
         &Point3::construct(&[190.0, 90.0, 190.0]),
         90.0,
@@ -673,7 +673,6 @@ fn main() {
     )));
 
     let lights_ptr = Arc::new(lights);
-    // lights.add(Arc::new(Sphere::construct(
 
     let lookfrom = Point3::construct(&[278.0, 278.0, -800.0]);
     let lookat = Point3::construct(&[278.0, 278.0, 0.0]);
