@@ -44,6 +44,9 @@ use vec3::{Color3, Point3, Vec3};
 use std::sync::mpsc;
 use std::thread;
 
+use crate::material::Dielectric;
+use crate::sphere::Sphere;
+
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
     let a: f64 = r.direction().length_squared();
@@ -381,14 +384,14 @@ pub fn cornell_box() -> HittableList {
     //     white.clone(),
     // )));
 
-    let aluminum: Arc<dyn Material> = Arc::new(Metal::construct(
-        &Color3::construct(&[0.8, 0.85, 0.88]),
-        0.0,
-    ));
+    // let aluminum: Arc<dyn Material> = Arc::new(Metal::construct(
+    //     &Color3::construct(&[0.8, 0.85, 0.88]),
+    //     0.0,
+    // ));
     let mut box1: Arc<dyn Hittable> = Arc::new(Box::construct(
         &Point3::construct(&[0.0, 0.0, 0.0]),
         &Point3::construct(&[165.0, 330.0, 165.0]),
-        aluminum,
+        white,
     ));
     box1 = Arc::new(RotateY::construct(box1, 15.0));
     box1 = Arc::new(Translate::construct(
@@ -397,17 +400,23 @@ pub fn cornell_box() -> HittableList {
     ));
     objects.add(box1);
 
-    let mut box2: Arc<dyn Hittable> = Arc::new(Box::construct(
-        &Point3::construct(&[0.0, 0.0, 0.0]),
-        &Point3::construct(&[165.0, 165.0, 165.0]),
-        white,
-    ));
-    box2 = Arc::new(RotateY::construct(box2, -18.0));
-    box2 = Arc::new(Translate::construct(
-        box2,
-        &Vec3::construct(&[130.0, 0.0, 65.0]),
-    ));
-    objects.add(box2);
+    // let mut box2: Arc<dyn Hittable> = Arc::new(Box::construct(
+    //     &Point3::construct(&[0.0, 0.0, 0.0]),
+    //     &Point3::construct(&[165.0, 165.0, 165.0]),
+    //     white,
+    // ));
+    // box2 = Arc::new(RotateY::construct(box2, -18.0));
+    // box2 = Arc::new(Translate::construct(
+    //     box2,
+    //     &Vec3::construct(&[130.0, 0.0, 65.0]),
+    // ));
+    // objects.add(box2);
+    let glass = Arc::new(Dielectric::construct(1.5));
+    objects.add(Arc::new(Sphere::construct(
+        &Point3::construct(&[190.0, 90.0, 190.0]),
+        90.0,
+        glass,
+    )));
 
     objects
 }
@@ -631,7 +640,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image9.jpg");
+    let path = std::path::Path::new("output/book3/image10-new.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -639,7 +648,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 600;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 1080;
+    const SAMPLES_PER_PIXEL: u32 = 540;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -647,16 +656,22 @@ fn main() {
 
     let world: HittableList = cornell_box();
     let mut lights = HittableList::new();
-    lights.add(Arc::new(XzRect::construct(
-        213.0,
-        343.0,
-        227.0,
-        332.0,
-        554.0,
-        Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
-            15.0, 15.0, 15.0,
-        ]))),
+    // lights.add(Arc::new(XzRect::construct(
+    //     213.0,
+    //     343.0,
+    //     227.0,
+    //     332.0,
+    //     554.0,
+    //     Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
+    //         15.0, 15.0, 15.0,
+    //     ]))),
+    // )));
+    lights.add(Arc::new(Sphere::construct(
+        &Point3::construct(&[190.0, 90.0, 190.0]),
+        90.0,
+        Arc::new(Dielectric::construct(1.5)),
     )));
+
     let lights_ptr = Arc::new(lights);
     // lights.add(Arc::new(Sphere::construct(
 
