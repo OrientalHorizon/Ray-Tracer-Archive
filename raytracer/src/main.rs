@@ -143,6 +143,17 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
     let mut g: f64 = pixel_color.y();
     let mut b: f64 = pixel_color.z();
 
+    // Replace NaN
+    if r != r {
+        r = 0.0;
+    }
+    if g != g {
+        g = 0.0;
+    }
+    if b != b {
+        b = 0.0;
+    }
+
     // Divide the color by the number of samples.
     let scale: f64 = 1.0 / samples_per_pixel as f64;
     r = (scale * r).sqrt();
@@ -640,7 +651,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image11.jpg");
+    let path = std::path::Path::new("output/book3/image12.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
