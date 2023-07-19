@@ -4,6 +4,8 @@ use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::{dot, Point3, Vec3};
 use std::sync::Arc;
+
+#[derive(Debug)]
 pub struct MovingSphere {
     pub center0: Point3,
     pub center1: Point3,

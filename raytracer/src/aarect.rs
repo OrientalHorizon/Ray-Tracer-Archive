@@ -6,6 +6,7 @@ use crate::rt_weekend::{random_double_range, INFINITY};
 use crate::vec3::{dot, Point3, Vec3};
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct XyRect {
     pub mp: Arc<dyn Material>,
     pub x0: f64,
@@ -55,6 +56,7 @@ impl Hittable for XyRect {
     }
 }
 
+#[derive(Debug)]
 pub struct XzRect {
     pub mp: Arc<dyn Material>,
     pub x0: f64,
@@ -123,6 +125,7 @@ impl Hittable for XzRect {
     }
 }
 
+#[derive(Debug)]
 pub struct YzRect {
     pub mp: Arc<dyn Material>,
     pub y0: f64,

@@ -2,6 +2,7 @@ use crate::rt_weekend::random_int;
 use crate::vec3::{dot, Point3, Vec3};
 use std::vec::Vec;
 
+#[derive(Debug)]
 pub struct Perlin {
     pub ranvec: Vec<Vec3>,
     pub perm_x: Vec<u32>,

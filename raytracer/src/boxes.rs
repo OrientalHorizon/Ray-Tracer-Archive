@@ -7,6 +7,7 @@ use crate::ray::Ray;
 use crate::vec3::Point3;
 use std::sync::Arc;
 
+#[derive(Debug, Default)]
 pub struct Box {
     box_min: Point3,
     box_max: Point3,

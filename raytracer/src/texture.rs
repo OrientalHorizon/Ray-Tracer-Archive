@@ -1,12 +1,14 @@
 use crate::perlin::Perlin;
 use crate::rt_weekend::clamp;
 use crate::vec3::{Color3, Point3};
+use std::fmt::Debug;
 use std::sync::Arc;
 
-pub trait Texture: Send + Sync {
+pub trait Texture: Debug + Send + Sync {
     fn value(&self, u: f64, v: f64, p: &Point3) -> Color3;
 }
 
+#[derive(Debug)]
 pub struct SolidColor {
     pub color_value: Color3,
 }
@@ -35,6 +37,7 @@ impl Texture for SolidColor {
     }
 }
 
+#[derive(Debug)]
 pub struct CheckerTexture {
     pub even: Arc<dyn Texture>,
     pub odd: Arc<dyn Texture>,
@@ -65,6 +68,7 @@ impl Texture for CheckerTexture {
     }
 }
 
+#[derive(Debug)]
 pub struct NoiseTexture {
     pub noise: Perlin,
     pub scale: f64,
@@ -91,6 +95,7 @@ impl Texture for NoiseTexture {
     }
 }
 
+#[derive(Debug)]
 pub struct ImageTexture {
     pub data: Vec<u8>,
     pub width: u32,

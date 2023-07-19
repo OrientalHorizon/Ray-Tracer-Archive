@@ -25,22 +25,21 @@ mod vec3;
 
 use aarect::{XyRect, XzRect, YzRect};
 use boxes::Box;
-use bvh::BVHNode;
 use camera::Camera;
-use pdf::{CosinePdf, HittablePdf, MixturePdf, Pdf};
+use pdf::{HittablePdf, MixturePdf, Pdf};
 // use constant_medium::ConstantMedium;
 use hittable::{FlipFace, HitRecord, Hittable, RotateY, Translate};
 use hittable_list::HittableList;
-use image::GenericImageView;
+// use image::GenericImageView;
 //use material::DiffuseLight;
 // use material::{Dielectric, Lambertian, Material, Metal};
-use material::{DiffuseLight, Lambertian, Material};
-use moving_sphere::MovingSphere;
+use material::{DiffuseLight, Lambertian, Material, Metal, ScatterRecord};
+// use moving_sphere::MovingSphere;
 use ray::Ray;
-use rt_weekend::{random_double, random_double_range};
-use sphere::Sphere;
-use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
-use vec3::{dot, Color3, Point3, Vec3};
+use rt_weekend::random_double;
+// use sphere::Sphere;
+// use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
+use vec3::{Color3, Point3, Vec3};
 
 use std::sync::mpsc;
 use std::thread;
@@ -73,24 +72,26 @@ pub fn ray_color(
         return *background;
     }
 
-    let mut scattered: Ray = Ray::new();
+    let mut srec = ScatterRecord::new();
     // let attenuation: Color3 = Color3::new();
     let emitted = rec
         .mat_ptr
         .as_ref()
         .unwrap()
         .emitted(&r, &rec, rec.u, rec.v, &rec.p);
-
-    let mut pdf = 0.0;
-    let mut albedo: Color3 = Color3::new();
-    if !rec
-        .mat_ptr
-        .as_ref()
-        .unwrap()
-        .scatter(r, &rec, &mut albedo, &mut scattered, &mut pdf)
-    {
+    if !rec.mat_ptr.as_ref().unwrap().scatter(r, &rec, &mut srec) {
         return emitted;
     }
+
+    if srec.is_specular {
+        return srec.attenuation
+            * ray_color(&srec.specular_ray, background, world, lights, depth - 1);
+    }
+
+    let light_ptr = Arc::new(HittablePdf::construct(lights.clone(), &rec.p));
+    let p = MixturePdf::construct(light_ptr, (*srec.pdf_ptr.as_ref().unwrap()).clone());
+    let scattered = Ray::construct(&rec.p, &p.generate(), r.time());
+    let pdf_val = p.value(&scattered.direction());
 
     // let on_light = Point3::construct(&[
     //     random_double_range(213.0, 243.0),
@@ -116,22 +117,22 @@ pub fn ray_color(
     // scattered = Ray::construct(&rec.p, &p.generate(), r.time());
     // pdf = p.value(&scattered.direction());
 
-    let p0 = HittablePdf::construct(lights.clone(), &rec.p);
-    let p1 = CosinePdf::construct(&rec.normal);
-    let mixture_pdf = MixturePdf::construct(Arc::new(p0), Arc::new(p1));
-    let light_pdf = HittablePdf::construct(lights.clone(), &rec.p);
-    scattered = Ray::construct(&rec.p, &mixture_pdf.generate(), r.time());
-    pdf = mixture_pdf.value(&scattered.direction());
+    // let p0 = HittablePdf::construct(lights.clone(), &rec.p);
+    // let p1 = CosinePdf::construct(&rec.normal);
+    // let mixture_pdf = MixturePdf::construct(Arc::new(p0), Arc::new(p1));
+    // let light_pdf = HittablePdf::construct(lights.clone(), &rec.p);
+    // scattered = Ray::construct(&rec.p, &mixture_pdf.generate(), r.time());
+    // pdf = mixture_pdf.value(&scattered.direction());
 
     emitted
-        + albedo
+        + srec.attenuation
             * rec
                 .mat_ptr
                 .as_ref()
                 .unwrap()
                 .scattering_pdf(r, &rec, &scattered)
             * ray_color(&scattered, background, world, lights, depth - 1)
-            / pdf
+            / pdf_val
 }
 
 pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
@@ -380,10 +381,14 @@ pub fn cornell_box() -> HittableList {
     //     white.clone(),
     // )));
 
+    let aluminum: Arc<dyn Material> = Arc::new(Metal::construct(
+        &Color3::construct(&[0.8, 0.85, 0.88]),
+        0.0,
+    ));
     let mut box1: Arc<dyn Hittable> = Arc::new(Box::construct(
         &Point3::construct(&[0.0, 0.0, 0.0]),
         &Point3::construct(&[165.0, 330.0, 165.0]),
-        white.clone(),
+        aluminum,
     ));
     box1 = Arc::new(RotateY::construct(box1, 15.0));
     box1 = Arc::new(Translate::construct(
@@ -626,7 +631,7 @@ pub fn cornell_box() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book3/image8.jpg");
+    let path = std::path::Path::new("output/book3/image9.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -641,7 +646,8 @@ fn main() {
     // let mut world = random_scene();
 
     let world: HittableList = cornell_box();
-    let lights: Arc<dyn Hittable> = Arc::new(XzRect::construct(
+    let mut lights = HittableList::new();
+    lights.add(Arc::new(XzRect::construct(
         213.0,
         343.0,
         227.0,
@@ -650,7 +656,9 @@ fn main() {
         Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
             15.0, 15.0, 15.0,
         ]))),
-    ));
+    )));
+    let lights_ptr = Arc::new(lights);
+    // lights.add(Arc::new(Sphere::construct(
 
     let lookfrom = Point3::construct(&[278.0, 278.0, -800.0]);
     let lookat = Point3::construct(&[278.0, 278.0, 0.0]);
@@ -712,7 +720,7 @@ fn main() {
                 let image_height = IMAGE_HEIGHT;
                 let i_f64 = i as f64;
                 let j_f64 = j as f64;
-                let lights = lights.clone();
+                let lights_ptr = lights_ptr.clone();
 
                 let handle = thread::spawn(move || {
                     for _t in 0..(SAMPLES_PER_PIXEL / thread_num) {
@@ -723,7 +731,7 @@ fn main() {
                             &r,
                             &background,
                             &world,
-                            lights.clone(),
+                            lights_ptr.clone(),
                             max_depth,
                         ))
                         .unwrap();

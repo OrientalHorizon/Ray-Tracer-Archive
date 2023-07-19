@@ -4,6 +4,7 @@ use crate::ray::Ray;
 use crate::rt_weekend::{degrees_to_radians, INFINITY};
 use crate::vec3::Point3;
 use crate::vec3::{dot, Vec3};
+use std::fmt::Debug;
 use std::sync::Arc;
 
 #[derive(Clone, Default)]
@@ -47,7 +48,7 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable: Send + Sync {
+pub trait Hittable: Debug + Send + Sync {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
     fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool;
     fn pdf_value(&self, o: &Point3, v: &Vec3) -> f64 {
@@ -58,6 +59,7 @@ pub trait Hittable: Send + Sync {
     }
 }
 
+#[derive(Debug)]
 pub struct Translate {
     pub ptr: Arc<dyn Hittable>,
     pub offset: Vec3,
@@ -93,6 +95,7 @@ impl Hittable for Translate {
     }
 }
 
+#[derive(Debug)]
 pub struct RotateY {
     pub ptr: Arc<dyn Hittable>,
     pub sin_theta: f64,
@@ -177,6 +180,7 @@ impl Hittable for RotateY {
     }
 }
 
+#[derive(Debug)]
 pub struct FlipFace {
     ptr: Arc<dyn Hittable>,
 }

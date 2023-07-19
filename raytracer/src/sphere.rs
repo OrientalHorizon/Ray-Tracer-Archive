@@ -6,6 +6,7 @@ use crate::rt_weekend::PI;
 use crate::vec3::{dot, Point3, Vec3};
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct Sphere {
     pub center: Point3,
     pub radius: f64,

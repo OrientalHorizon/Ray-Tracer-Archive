@@ -1,6 +1,6 @@
 use crate::hittable::Hittable;
 use crate::onb::Onb;
-use crate::rt_weekend::{PI, random_double};
+use crate::rt_weekend::{random_double, PI};
 use crate::vec3::{dot, random_cosine_direction, Point3, Vec3};
 use std::sync::Arc;
 
@@ -9,6 +9,7 @@ pub trait Pdf {
     fn generate(&self) -> Vec3;
 }
 
+#[derive(Clone, Copy, Debug, Default)]
 pub struct CosinePdf {
     pub uvw: Onb,
 }
@@ -33,6 +34,7 @@ impl Pdf for CosinePdf {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct HittablePdf {
     pub o: Point3,
     pub ptr: Arc<dyn Hittable>,
@@ -59,7 +61,9 @@ pub struct MixturePdf {
 }
 impl MixturePdf {
     pub fn construct(p0: Arc<dyn Pdf>, p1: Arc<dyn Pdf>) -> Self {
-        Self { p: [Arc::clone(&p0), Arc::clone(&p1)] }
+        Self {
+            p: [Arc::clone(&p0), Arc::clone(&p1)],
+        }
     }
 }
 impl Pdf for MixturePdf {

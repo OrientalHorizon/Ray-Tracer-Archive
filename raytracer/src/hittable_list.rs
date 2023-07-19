@@ -7,7 +7,7 @@ use hittable::{HitRecord, Hittable};
 use std::sync::Arc;
 use std::vec::Vec;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct HittableList {
     pub objects: Vec<Arc<dyn Hittable>>,
 }
@@ -68,5 +68,17 @@ impl Hittable for HittableList {
             first_box = false;
         }
         true
+    }
+    fn pdf_value(&self, o: &crate::vec3::Point3, v: &crate::vec3::Vec3) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
+        let mut sum = 0.0;
+        for object in &self.objects {
+            sum += weight * object.pdf_value(o, v);
+        }
+        sum
+    }
+    fn random(&self, o: &crate::vec3::Vec3) -> crate::vec3::Vec3 {
+        let int_size = self.objects.len();
+        self.objects[rand::random::<usize>() % int_size].random(o)
     }
 }
