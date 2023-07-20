@@ -7,16 +7,13 @@ use std::{fs::File, process::exit};
 mod aabb;
 mod aarect;
 mod boxes;
-mod bvh;
 mod camera;
 mod constant_medium;
 mod hittable;
 mod hittable_list;
 mod material;
-mod moving_sphere;
 mod onb;
 mod pdf;
-mod perlin;
 mod ray;
 mod rt_weekend;
 mod sphere;
@@ -33,7 +30,7 @@ use hittable_list::HittableList;
 // use image::GenericImageView;
 //use material::DiffuseLight;
 // use material::{Dielectric, Lambertian, Material, Metal};
-use material::{DiffuseLight, Lambertian, Material, Metal, ScatterRecord};
+use material::{DiffuseLight, Lambertian, ScatterRecord};
 // use moving_sphere::MovingSphere;
 use ray::Ray;
 use rt_weekend::random_double;
@@ -81,7 +78,7 @@ pub fn ray_color(
         .mat_ptr
         .as_ref()
         .unwrap()
-        .emitted(&r, &rec, rec.u, rec.v, &rec.p);
+        .emitted(r, &rec, rec.u, rec.v, &rec.p);
     if !rec.mat_ptr.as_ref().unwrap().scatter(r, &rec, &mut srec) {
         return emitted;
     }
@@ -142,17 +139,6 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
     let mut r: f64 = pixel_color.x();
     let mut g: f64 = pixel_color.y();
     let mut b: f64 = pixel_color.z();
-
-    // Replace NaN
-    if r != r {
-        r = 0.0;
-    }
-    if g != g {
-        g = 0.0;
-    }
-    if b != b {
-        b = 0.0;
-    }
 
     // Divide the color by the number of samples.
     let scale: f64 = 1.0 / samples_per_pixel as f64;

@@ -1,7 +1,7 @@
 // use crate::vec3::Point3;
 use crate::aabb::Aabb;
 use crate::hittable;
-use crate::vec3::{Point3, Vec3};
+// use crate::vec3::{Point3, Vec3};
 use crate::ray::Ray;
 
 use hittable::{HitRecord, Hittable};

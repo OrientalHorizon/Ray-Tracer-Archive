@@ -9,13 +9,13 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 pub trait Material: Debug + Send + Sync {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord, srec: &mut ScatterRecord) -> bool {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord, _srec: &mut ScatterRecord) -> bool {
         false
     }
     fn emitted(&self, _r_in: &Ray, _rec: &HitRecord, _u: f64, _v: f64, _p: &Point3) -> Color3 {
         Color3::construct(&[0.0, 0.0, 0.0])
     }
-    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+    fn scattering_pdf(&self, _r_in: &Ray, _rec: &HitRecord, _scattered: &Ray) -> f64 {
         0.0
     }
 }
@@ -37,15 +37,15 @@ impl Lambertian {
             albedo: Arc::new(SolidColor::construct(a)),
         }
     }
-    pub fn construct_texture(a: Arc<dyn Texture>) -> Self {
-        Self {
-            albedo: Arc::clone(&a),
-        }
-    }
+    // pub fn construct_texture(a: Arc<dyn Texture>) -> Self {
+    //     Self {
+    //         albedo: Arc::clone(&a),
+    //     }
+    // }
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord, srec: &mut ScatterRecord) -> bool {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord, srec: &mut ScatterRecord) -> bool {
         // let mut scatter_direction: Vec3 = rec.normal + random_unit_vector();
 
         // if scatter_direction.near_zero() {
@@ -84,12 +84,12 @@ impl Metal {
     //         fuzz: 0.0,
     //     }
     // }
-    pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
-        Self {
-            albedo: *albedo,
-            fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
-        }
-    }
+    // pub fn construct(albedo: &Color3, fuzz: f64) -> Self {
+    //     Self {
+    //         albedo: *albedo,
+    //         fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
+    //     }
+    // }
 }
 
 impl Material for Metal {
@@ -183,7 +183,7 @@ impl Material for DiffuseLight {
     // }
     fn emitted(&self, _r_in: &Ray, rec: &HitRecord, u: f64, v: f64, p: &Point3) -> Color3 {
         if rec.front_face {
-            self.emit.value(u, v, &p)
+            self.emit.value(u, v, p)
         } else {
             Vec3::construct(&[0.0, 0.0, 0.0])
         }
@@ -233,5 +233,10 @@ impl ScatterRecord {
             attenuation: Vec3::new(),
             pdf_ptr: None,
         }
+    }
+}
+impl Default for ScatterRecord {
+    fn default() -> Self {
+        Self::new()
     }
 }

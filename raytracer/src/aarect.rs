@@ -112,7 +112,7 @@ impl Hittable for XzRect {
 
         let area = (self.x1 - self.x0) * (self.z1 - self.z0);
         let distance_squared = rec.t * rec.t * v.length_squared();
-        let cosine = (dot(&v, &rec.normal) / v.length()).abs();
+        let cosine = (dot(v, &rec.normal) / v.length()).abs();
         distance_squared / cosine / area
     }
     fn random(&self, origin: &Vec3) -> Vec3 {
