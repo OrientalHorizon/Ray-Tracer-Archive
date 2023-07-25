@@ -67,3 +67,71 @@ let thread_num: u32 = 18;
 
 ### 替换 `Arc` 和 `dyn`
 
+### 边缘检测
+
+采用 Laplace 和 Sobel 算子。
+
+核心代码：
+
+```rust
+// Laplace
+for i in 0..width {
+    for j in 0..height {
+        if i == 0 || i == width - 1 || j == 0 || j == height - 1 {
+            gen[i][j] = 0f64;
+            continue;
+        }
+
+        let upleft = original[i - 1][j - 1];
+        let up = original[i - 1][j];
+        let upright = original[i - 1][j + 1];
+        let left = original[i][j - 1];
+        let center = original[i][j];
+        let right = original[i][j + 1];
+        let downleft = original[i + 1][j - 1];
+        let down = original[i + 1][j];
+        let downright = original[i + 1][j + 1];
+        let sum =
+            upleft + up + upright + left + right + downleft + down + downright - 8.0 * center;
+        gen[i][j] = sum;
+    }
+}
+
+// Sobel
+let sobel_x: [[f64; 3]; 3] = { [[-1.0, 0.0, 1.0], [-2.0, 0.0, 2.0], [-1.0, 0.0, 1.0]] };
+let sobel_y: [[f64; 3]; 3] = { [[-1.0, -2.0, -1.0], [0.0, 0.0, 0.0], [1.0, 2.0, 1.0]] };
+for i in 0..width {
+    for j in 0..height {
+        if i == 0 || i == width - 1 || j == 0 || j == height - 1 {
+            gen[i][j] = 0f64;
+            continue;
+        }
+        let mut gx = 0.0;
+        for k in 0..3 {
+            for l in 0..3 {
+                gx += sobel_x[k][l] * original[i + k - 1][j + l - 1];
+            }
+        }
+        let mut gy = 0.0;
+        for k in 0..3 {
+            for l in 0..3 {
+                gy += sobel_y[k][l] * original[i + k - 1][j + l - 1];
+            }
+        }
+        let ans = (gx * gx + gy * gy).sqrt();
+        // println!("{ans}");
+        if ans > 58.0 {
+            gen[i][j] = 0.0;
+        } else {
+            gen[i][j] = original[i][j];
+            // println!("fuck");
+        }
+    }
+}
+```
+
+仓库地址：<https://github.com/OrientalHorizon/Edge-Detection>
+
+Laplace 效果图：![Laplace](https://github.com/OrientalHorizon/Edge-Detection/blob/main/output/gen-lap.jpg)
+
+Sobel 效果图：![Sobel](https://github.com/OrientalHorizon/Edge-Detection/blob/main/output/gen-sobel.jpg)
