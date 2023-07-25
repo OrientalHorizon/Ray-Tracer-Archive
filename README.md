@@ -1,3 +1,7 @@
+博客链接：<https://www.cnblogs.com/gznpp/p/ray-tracer-notes.html>
+
+整理了一些东西，结果后几天进度一落千丈……
+
 ![](./doc/assets/image-raytracing.png)
 
 # Summer-Ray-Tracer
