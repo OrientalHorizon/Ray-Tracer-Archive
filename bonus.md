@@ -67,6 +67,8 @@ let thread_num: u32 = 18;
 
 ### 替换 `Arc` 和 `dyn`
 
+从最底层的结构体开始。为引用指定生命周期。
+
 ### 边缘检测
 
 采用 Laplace 和 Sobel 算子。
@@ -124,7 +126,6 @@ for i in 0..width {
             gen[i][j] = 0.0;
         } else {
             gen[i][j] = original[i][j];
-            // println!("fuck");
         }
     }
 }
