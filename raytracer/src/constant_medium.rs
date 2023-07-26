@@ -3,15 +3,15 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::material::{Isotropic, Material};
 use crate::ray::Ray;
 use crate::rt_weekend::{random_double, INFINITY};
+use crate::texture::SolidColor;
 use crate::vec3::Color3;
-use std::sync::Arc;
 
-pub struct ConstantMedium {
-    pub boundary: Arc<dyn Hittable>,
-    pub phase_function: Arc<dyn Material>,
+pub struct ConstantMedium<T1: Hittable, T2: Material> {
+    pub boundary: T1,
+    pub phase_function: T2,
     pub neg_inv_density: f64,
 }
-impl ConstantMedium {
+impl<T1: Hittable> ConstantMedium<T1, Isotropic<SolidColor>> {
     // pub fn construct(b: Arc<dyn Hittable>, d: f64, a: Arc<dyn Texture>) -> Self {
     //     Self {
     //         boundary: Arc::clone(&b),
@@ -19,25 +19,24 @@ impl ConstantMedium {
     //         phase_function: Arc::new(Isotropic::construct(a)),
     //     }
     // }
-    pub fn construct_color(b: Arc<dyn Hittable>, d: f64, c: &Color3) -> Self {
+    pub fn construct_color(b: T1, d: f64, c: &Color3) -> Self {
         Self {
-            boundary: Arc::clone(&b),
+            boundary: b,
             neg_inv_density: -1.0 / d,
-            phase_function: Arc::new(Isotropic::construct_color(c)),
+            phase_function: Isotropic::construct_color(c),
         }
     }
 }
-impl Hittable for ConstantMedium {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        let mut rec1 = HitRecord::new();
-        let mut rec2 = HitRecord::new();
+impl<T1: Hittable, T2: Material> Hittable for ConstantMedium<T1, T2> {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> Option<HitRecord> {
+        let mut rec1 = self.boundary.hit(r, -INFINITY, INFINITY);
+        let mut rec2 = self.boundary.hit(r, rec1.t + 0.0001, INFINITY);
 
-        if !self.boundary.hit(r, -INFINITY, INFINITY, &mut rec1) {
-            return false;
+        if rec1.is_none() || rec2.is_none() {
+            return None;
         }
-        if !self.boundary.hit(r, rec1.t + 0.0001, INFINITY, &mut rec2) {
-            return false;
-        }
+        let rec1 = rec1.unwrap();
+        let rec2 = rec2.unwrap();
 
         if rec1.t < t_min {
             rec1.t = t_min;
@@ -60,16 +59,17 @@ impl Hittable for ConstantMedium {
             return false;
         }
 
+        let mut rec = HitRecord::new();
         rec.t = rec1.t + hit_distance / ray_length;
         rec.p = r.at(rec.t);
 
         rec.normal = Color3::construct(&[1.0, 0.0, 0.0]); // arbitrary
         rec.front_face = true; // also arbitrary
-        rec.mat_ptr = Some(Arc::clone(&self.phase_function));
+        rec.mat_ptr = Some(&self.phase_function);
 
-        true
+        Some(rec)
     }
-    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool {
-        self.boundary.bounding_box(time0, time1, output_box)
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
+        self.boundary.bounding_box(time0, time1)
     }
 }

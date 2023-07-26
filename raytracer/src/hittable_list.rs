@@ -4,7 +4,6 @@ use crate::hittable;
 use crate::ray::Ray;
 
 use hittable::{HitRecord, Hittable};
-use std::sync::Arc;
 use std::vec::Vec;
 
 #[derive(Clone, Default)]
