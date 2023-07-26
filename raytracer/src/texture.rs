@@ -1,7 +1,6 @@
 use crate::perlin::Perlin;
 use crate::rt_weekend::clamp;
 use crate::vec3::{Color3, Point3};
-use std::sync::Arc;
 
 pub trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: &Point3) -> Color3;
@@ -35,11 +34,11 @@ impl Texture for SolidColor {
     }
 }
 
-pub struct CheckerTexture {
-    pub even: Arc<dyn Texture>,
-    pub odd: Arc<dyn Texture>,
+pub struct CheckerTexture<T1: Texture, T2: Texture> {
+    pub even: T1,
+    pub odd: T2,
 }
-impl CheckerTexture {
+impl CheckerTexture<SolidColor, SolidColor> {
     // pub fn construct(ev: Arc<dyn Texture>, od: Arc<dyn Texture>) -> Self {
     //     Self {
     //         odd: Arc::clone(&od),
@@ -48,13 +47,13 @@ impl CheckerTexture {
     // }
     pub fn construct_color(c1: &Color3, c2: &Color3) -> Self {
         Self {
-            even: Arc::new(SolidColor::construct(c1)),
-            odd: Arc::new(SolidColor::construct(c2)),
+            even: SolidColor::construct(c1),
+            odd: SolidColor::construct(c2),
         }
     }
 }
 
-impl Texture for CheckerTexture {
+impl<T1: Texture, T2: Texture> Texture for CheckerTexture<T1, T2> {
     fn value(&self, u: f64, v: f64, p: &Point3) -> Color3 {
         let sines: f64 = (10.0 * p.x()).sin() * (10.0 * p.y()).sin() * (10.0 * p.z()).sin();
         if sines < 0.0 {

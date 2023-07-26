@@ -4,20 +4,19 @@ use crate::ray::Ray;
 use crate::rt_weekend::{degrees_to_radians, INFINITY};
 use crate::vec3::Point3;
 use crate::vec3::{dot, Vec3};
-use std::sync::Arc;
 
-#[derive(Clone, Default)]
-pub struct HitRecord {
+#[derive(Clone)]
+pub struct HitRecord<'a> {
     pub p: Point3,
     pub normal: Vec3,
-    pub mat_ptr: Option<Arc<dyn Material>>,
+    pub mat_ptr: Option<&'a dyn Material>,
     pub t: f64,
     pub u: f64,
     pub v: f64,
     pub front_face: bool,
 }
 
-impl HitRecord {
+impl<'a> HitRecord<'a> {
     pub fn new() -> Self {
         Self {
             p: Point3::new(),
@@ -48,59 +47,61 @@ impl HitRecord {
 }
 
 pub trait Hittable: Send + Sync {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
-    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool;
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb>;
 }
 
-pub struct Translate {
-    pub ptr: Arc<dyn Hittable>,
+pub struct Translate<T: Hittable> {
+    pub ptr: T,
     pub offset: Vec3,
 }
-impl Translate {
-    pub fn construct(p: Arc<dyn Hittable>, displacement: &Vec3) -> Self {
+impl<T: Hittable> Translate<T> {
+    pub fn construct(p: T, displacement: &Vec3) -> Self {
         Self {
-            ptr: Arc::clone(&p),
+            ptr: p,
             offset: *displacement,
         }
     }
 }
-impl Hittable for Translate {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+impl<T: Hittable> Hittable for Translate<T> {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let moved_r = Ray::construct(&(r.origin() - self.offset), &r.direction(), r.time());
-        if !self.ptr.hit(&moved_r, t_min, t_max, rec) {
-            return false;
+        match self.ptr.hit(&moved_r, t_min, t_max) {
+            Some(mut rec) => {
+                rec.p += self.offset;
+                let norm = rec.normal;
+                rec.set_face_normal(&moved_r, &norm);
+                Some(rec)
+            }
+            None => None,
         }
-        rec.p += self.offset;
-        let norm = rec.normal;
-        rec.set_face_normal(&moved_r, &norm);
-        true
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
-        if !self.ptr.bounding_box(_time0, _time1, output_box) {
-            return false;
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        match self.ptr.bounding_box(_time0, _time1) {
+            Some(mut output_box) => {
+                output_box = Aabb::construct(
+                    &(output_box.minimum() + self.offset),
+                    &(output_box.maximum() + self.offset),
+                );
+                Some(output_box)
+            }
+            None => None,
         }
-        *output_box = Aabb::construct(
-            &(output_box.minimum() + self.offset),
-            &(output_box.maximum() + self.offset),
-        );
-        true
     }
 }
 
-pub struct RotateY {
-    pub ptr: Arc<dyn Hittable>,
+pub struct RotateY<T: Hittable> {
+    pub ptr: T,
     pub sin_theta: f64,
     pub cos_theta: f64,
-    pub hasbox: bool,
-    pub bbox: Aabb,
+    pub bbox: Option<Aabb>,
 }
-impl RotateY {
-    pub fn construct(p: Arc<dyn Hittable>, angle: f64) -> Self {
+impl<T: Hittable> RotateY<T> {
+    pub fn construct(p: &T, angle: f64) -> Self {
         let radians: f64 = degrees_to_radians(angle);
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
-        let mut bbox = Aabb::new();
-        let hasbox = p.bounding_box(0.0, 1.0, &mut bbox);
+        let bbox = p.bounding_box(0.0, 1.0).unwrap();
 
         let mut mini = Point3::construct(&[INFINITY, INFINITY, INFINITY]);
         let mut maxi = Point3::construct(&[-INFINITY, -INFINITY, -INFINITY]);
@@ -126,16 +127,15 @@ impl RotateY {
         }
         bbox = Aabb::construct(&mini, &maxi);
         Self {
-            ptr: Arc::clone(&p),
+            ptr: *p,
             sin_theta,
             cos_theta,
-            hasbox,
-            bbox,
+            bbox: Some(bbox),
         }
     }
 }
-impl Hittable for RotateY {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+impl<T: Hittable> Hittable for RotateY<T> {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut origin = r.origin();
         let mut direction = r.direction();
 
@@ -147,26 +147,26 @@ impl Hittable for RotateY {
 
         let rotated_r = Ray::construct(&origin, &direction, r.time());
 
-        if !self.ptr.hit(&rotated_r, t_min, t_max, rec) {
-            return false;
+        match self.ptr.hit(&rotated_r, t_min, t_max) {
+            Some(mut rec) => {
+                let mut p = rec.p;
+                let mut normal = rec.normal;
+
+                p.e[0] = self.cos_theta * rec.p.e[0] + self.sin_theta * rec.p.e[2];
+                p.e[2] = -self.sin_theta * rec.p.e[0] + self.cos_theta * rec.p.e[2];
+
+                normal.e[0] = self.cos_theta * rec.normal.e[0] + self.sin_theta * rec.normal.e[2];
+                normal.e[2] = -self.sin_theta * rec.normal.e[0] + self.cos_theta * rec.normal.e[2];
+
+                rec.p = p;
+                rec.set_face_normal(&rotated_r, &normal);
+
+                Some(rec)
+            }
+            None => None,
         }
-
-        let mut p = rec.p;
-        let mut normal = rec.normal;
-
-        p.e[0] = self.cos_theta * rec.p.e[0] + self.sin_theta * rec.p.e[2];
-        p.e[2] = -self.sin_theta * rec.p.e[0] + self.cos_theta * rec.p.e[2];
-
-        normal.e[0] = self.cos_theta * rec.normal.e[0] + self.sin_theta * rec.normal.e[2];
-        normal.e[2] = -self.sin_theta * rec.normal.e[0] + self.cos_theta * rec.normal.e[2];
-
-        rec.p = p;
-        rec.set_face_normal(&rotated_r, &normal);
-
-        true
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
-        *output_box = self.bbox;
-        self.hasbox
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        self.bbox
     }
 }

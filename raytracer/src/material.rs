@@ -5,8 +5,6 @@ use crate::texture::{SolidColor, Texture};
 use crate::vec3::{
     dot, random_in_unit_sphere, random_unit_vector, reflect, refract, Color3, Point3, Vec3,
 };
-use std::ops::Deref;
-use std::sync::Arc;
 
 pub trait Material: Send + Sync {
     fn scatter(
@@ -21,30 +19,31 @@ pub trait Material: Send + Sync {
     }
 }
 
-pub struct Lambertian {
+#[derive(Clone)]
+pub struct Lambertian<T: Texture> {
     // pub albedo: Color3,
-    pub albedo: Arc<dyn Texture>,
+    pub albedo: T,
 }
-
-impl Lambertian {
+impl Lambertian<SolidColor> {
+    pub fn construct(a: &Color3) -> Self {
+        Self {
+            albedo: SolidColor::construct(a),
+        }
+    }
+}
+impl<T: Texture> Lambertian<T> {
     // pub fn new() -> Self {
     //     Self {
     //         albedo: Color3::new(),
     //     }
     // }
-    pub fn construct(a: &Color3) -> Self {
-        Self {
-            albedo: Arc::new(SolidColor::construct(a)),
-        }
-    }
-    pub fn construct_texture(a: Arc<dyn Texture>) -> Self {
-        Self {
-            albedo: Arc::clone(&a),
-        }
+
+    pub fn construct_texture(a: &T) -> Self {
+        Self { albedo: *a }
     }
 }
 
-impl Material for Lambertian {
+impl<T: Clone + Texture> Material for Lambertian<T> {
     fn scatter(
         &self,
         r_in: &Ray,
@@ -59,11 +58,12 @@ impl Material for Lambertian {
         }
 
         *scattered = Ray::construct(&rec.p, &scatter_direction, r_in.time());
-        *attenuation = self.albedo.deref().value(rec.u, rec.v, &rec.p);
+        *attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
         true
     }
 }
 
+#[derive(Clone)]
 pub struct Metal {
     albedo: Color3,
     fuzz: f64,
@@ -156,10 +156,11 @@ impl Material for Dielectric {
     }
 }
 
-pub struct DiffuseLight {
-    emit: Arc<dyn Texture>,
+#[derive(Clone)]
+pub struct DiffuseLight<T: Texture> {
+    pub emit: T,
 }
-impl DiffuseLight {
+impl DiffuseLight<SolidColor> {
     // pub fn construct(emit: Arc<dyn Texture>) -> Self {
     //     Self {
     //         emit: Arc::clone(&emit),
@@ -167,11 +168,11 @@ impl DiffuseLight {
     // }
     pub fn construct_color(emit: &Color3) -> Self {
         Self {
-            emit: Arc::new(SolidColor::construct(emit)),
+            emit: SolidColor::construct(emit),
         }
     }
 }
-impl Material for DiffuseLight {
+impl<T: Clone + Texture> Material for DiffuseLight<T> {
     fn scatter(
         &self,
         _r_in: &Ray,
@@ -182,14 +183,15 @@ impl Material for DiffuseLight {
         false
     }
     fn emitted(&self, u: f64, v: f64, p: &Vec3) -> Vec3 {
-        self.emit.deref().value(u, v, p)
+        self.emit.value(u, v, p)
     }
 }
 
-pub struct Isotropic {
-    albedo: Arc<dyn Texture>,
+#[derive(Clone)]
+pub struct Isotropic<T: Texture> {
+    albedo: T,
 }
-impl Isotropic {
+impl Isotropic<SolidColor> {
     // pub fn construct(albedo: Arc<dyn Texture>) -> Self {
     //     Self {
     //         albedo: Arc::clone(&albedo),
@@ -197,11 +199,11 @@ impl Isotropic {
     // }
     pub fn construct_color(albedo: &Color3) -> Self {
         Self {
-            albedo: Arc::new(SolidColor::construct(albedo)),
+            albedo: SolidColor::construct(albedo),
         }
     }
 }
-impl Material for Isotropic {
+impl<T: Clone + Texture> Material for Isotropic<T> {
     fn scatter(
         &self,
         r_in: &Ray,
@@ -210,7 +212,7 @@ impl Material for Isotropic {
         scattered: &mut Ray,
     ) -> bool {
         *scattered = Ray::construct(&rec.p, &random_in_unit_sphere(), r_in.time());
-        *attenuation = self.albedo.deref().value(rec.u, rec.v, &rec.p);
+        *attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
         true
     }
 }

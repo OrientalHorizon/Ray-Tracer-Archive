@@ -8,17 +8,17 @@ use std::sync::Arc;
 use std::vec::Vec;
 
 #[derive(Clone, Default)]
-pub struct HittableList {
-    pub objects: Vec<Arc<dyn Hittable>>,
+pub struct HittableList<'a> {
+    pub objects: Vec<&'a dyn Hittable>,
 }
 
-impl HittableList {
+impl<'a> HittableList<'a> {
     pub fn new() -> Self {
         Self {
             objects: Vec::new(),
         }
     }
-    pub fn construct(object: Arc<dyn Hittable>) -> Self {
+    pub fn construct(object: &'a dyn Hittable) -> Self {
         Self {
             objects: {
                 let vec = vec![object];
@@ -29,26 +29,31 @@ impl HittableList {
     // pub fn clear(&mut self) {
     //     self.objects.clear();
     // }
-    pub fn add(&mut self, object: Arc<dyn Hittable>) {
+    pub fn add(&mut self, object: &'a dyn Hittable) {
         self.objects.push(object);
     }
 }
 
-impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+impl<'a> Hittable for HittableList<'a> {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut temp_rec: HitRecord = HitRecord::new();
         let mut hit_anything: bool = false;
         let mut closest_so_far: f64 = t_max;
+        let mut rec = HitRecord::new();
         for object in self.objects.iter() {
             if object.hit(r, t_min, closest_so_far, &mut temp_rec) {
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
-                *rec = temp_rec.clone();
+                rec = temp_rec.clone();
             }
         }
-        hit_anything
+        if hit_anything {
+            Some(rec)
+        } else {
+            None
+        }
     }
-    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut Aabb) -> bool {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         if self.objects.is_empty() {
             return false;
         }
@@ -57,16 +62,18 @@ impl Hittable for HittableList {
         let mut first_box: bool = true;
 
         for object in &self.objects {
-            if !object.bounding_box(time0, time1, &mut temp_box) {
-                return false;
+            match object.bounding_box(time0, time1) {
+                Some(output_box) => {
+                    temp_box = if first_box {
+                        output_box
+                    } else {
+                        Aabb::surrounding_box(&temp_box, &output_box)
+                    }
+                }
+                None => return None,
             }
-            *output_box = if first_box {
-                temp_box
-            } else {
-                Aabb::surrounding_box(output_box, &temp_box)
-            };
             first_box = false;
         }
-        true
+        Some(temp_box)
     }
 }
