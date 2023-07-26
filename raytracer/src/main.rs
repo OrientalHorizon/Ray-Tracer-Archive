@@ -1,8 +1,29 @@
+use std::sync::mpsc;
+use std::sync::Arc;
+use std::thread;
+use std::{fs::File, process::exit};
+
 use console::style;
+use image::GenericImageView;
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
-use std::sync::Arc;
-use std::{fs::File, process::exit};
+
+use aarect::{XyRect, XzRect, YzRect};
+use boxes::Box;
+use bvh::BVHNode;
+use camera::Camera;
+use constant_medium::ConstantMedium;
+use hittable::{HitRecord, Hittable, RotateY, Translate};
+use hittable_list::HittableList;
+use material::DiffuseLight;
+use material::{Dielectric, Lambertian, Material, Metal};
+use moving_sphere::MovingSphere;
+use obj_loader::load_objects;
+use ray::Ray;
+use rt_weekend::{random_double, random_double_range};
+use sphere::Sphere;
+use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
+use vec3::{Color3, Point3, Vec3};
 
 mod aabb;
 mod aarect;
@@ -14,32 +35,14 @@ mod hittable;
 mod hittable_list;
 mod material;
 mod moving_sphere;
+mod obj_loader;
 mod perlin;
 mod ray;
 mod rt_weekend;
 mod sphere;
 mod texture;
+mod triangle;
 mod vec3;
-
-use aarect::{XyRect, XzRect, YzRect};
-use boxes::Box;
-use bvh::BVHNode;
-use camera::Camera;
-use constant_medium::ConstantMedium;
-use hittable::{HitRecord, Hittable, RotateY, Translate};
-use hittable_list::HittableList;
-use image::GenericImageView;
-use material::DiffuseLight;
-use material::{Dielectric, Lambertian, Material, Metal};
-use moving_sphere::MovingSphere;
-use ray::Ray;
-use rt_weekend::{random_double, random_double_range};
-use sphere::Sphere;
-use texture::{CheckerTexture, ImageTexture, NoiseTexture, Texture};
-use vec3::{Color3, Point3, Vec3};
-
-use std::sync::mpsc;
-use std::thread;
 
 pub fn hit_sphere(center: &Point3, radius: &f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -206,6 +209,7 @@ pub fn two_perlin_spheres() -> HittableList {
     )));
     objects
 }
+
 pub fn earth() -> HittableList {
     let img = image::open("earthmap.jpg").expect("Failed to open image");
     let width: u32 = img.width();
@@ -227,6 +231,7 @@ pub fn earth() -> HittableList {
     ));
     HittableList::construct(globe)
 }
+
 pub fn simple_light() -> HittableList {
     let mut objects = HittableList::new();
 
@@ -313,40 +318,40 @@ pub fn cornell_box() -> HittableList {
         white.clone(),
     )));
 
-    objects.add(Arc::new(Box::construct(
-        &Point3::construct(&[130.0, 0.0, 65.0]),
-        &Point3::construct(&[295.0, 165.0, 230.0]),
-        white.clone(),
-    )));
-    objects.add(Arc::new(Box::construct(
-        &Point3::construct(&[265.0, 0.0, 295.0]),
-        &Point3::construct(&[430.0, 330.0, 460.0]),
-        white.clone(),
-    )));
+    // objects.add(Arc::new(Box::construct(
+    //     &Point3::construct(&[130.0, 0.0, 65.0]),
+    //     &Point3::construct(&[295.0, 165.0, 230.0]),
+    //     white.clone(),
+    // )));
+    // objects.add(Arc::new(Box::construct(
+    //     &Point3::construct(&[265.0, 0.0, 295.0]),
+    //     &Point3::construct(&[430.0, 330.0, 460.0]),
+    //     white.clone(),
+    // )));
 
-    let mut box1: Arc<dyn Hittable> = Arc::new(Box::construct(
-        &Point3::construct(&[0.0, 0.0, 0.0]),
-        &Point3::construct(&[165.0, 330.0, 165.0]),
-        white.clone(),
-    ));
-    box1 = Arc::new(RotateY::construct(box1, 15.0));
-    box1 = Arc::new(Translate::construct(
-        box1,
-        &Vec3::construct(&[265.0, 0.0, 295.0]),
-    ));
-    objects.add(box1);
+    // let mut box1: Arc<dyn Hittable> = Arc::new(Box::construct(
+    //     &Point3::construct(&[0.0, 0.0, 0.0]),
+    //     &Point3::construct(&[165.0, 330.0, 165.0]),
+    //     white.clone(),
+    // ));
+    // box1 = Arc::new(RotateY::construct(box1, 15.0));
+    // box1 = Arc::new(Translate::construct(
+    //     box1,
+    //     &Vec3::construct(&[265.0, 0.0, 295.0]),
+    // ));
+    // objects.add(box1);
 
-    let mut box2: Arc<dyn Hittable> = Arc::new(Box::construct(
-        &Point3::construct(&[0.0, 0.0, 0.0]),
-        &Point3::construct(&[165.0, 165.0, 165.0]),
-        white,
-    ));
-    box2 = Arc::new(RotateY::construct(box2, -18.0));
-    box2 = Arc::new(Translate::construct(
-        box2,
-        &Vec3::construct(&[130.0, 0.0, 65.0]),
-    ));
-    objects.add(box2);
+    // let mut box2: Arc<dyn Hittable> = Arc::new(Box::construct(
+    //     &Point3::construct(&[0.0, 0.0, 0.0]),
+    //     &Point3::construct(&[165.0, 165.0, 165.0]),
+    //     white,
+    // ));
+    // box2 = Arc::new(RotateY::construct(box2, -18.0));
+    // box2 = Arc::new(Translate::construct(
+    //     box2,
+    //     &Vec3::construct(&[130.0, 0.0, 65.0]),
+    // ));
+    // objects.add(box2);
 
     objects
 }
@@ -566,19 +571,32 @@ pub fn final_scene() -> HittableList {
 
     objects
 }
+pub fn test_tgv() -> HittableList {
+    let mut objects = cornell_box();
+    let getlist = load_objects(
+        "objects/cat.obj",
+        Arc::new(Metal::construct(&Color3::construct(&[0.7, 0.7, 0.7]), 0.2)),
+        0.5,
+    );
+    objects.add(Arc::new(Translate::construct(
+        Arc::new(BVHNode::construct2(&getlist, 0.0, 1.0)),
+        &Vec3::construct(&[200.0, 0.0, 0.0]),
+    )));
+    objects
+}
 
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/book2/image22.jpg");
+    let path = std::path::Path::new("output/haha.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
     // Image
     const ASPECT_RATIO: f64 = 1.0;
-    const IMAGE_WIDTH: u32 = 800;
+    const IMAGE_WIDTH: u32 = 400;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 9500;
+    const SAMPLES_PER_PIXEL: u32 = 76;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -586,16 +604,15 @@ fn main() {
 
     let world: HittableList;
 
-    let lookfrom = Point3::construct(&[478.0, 278.0, -600.0]);
+    let lookfrom = Point3::construct(&[278.0, 278.0, -800.0]);
     let lookat = Point3::construct(&[278.0, 278.0, 0.0]);
     let vfov = 40.0;
     let mut aperture = 0.0;
     let background = Color3::construct(&[0.0, 0.0, 0.0]);
-    let mth = 0;
+    let mth = 1;
     match mth {
         1 => {
-            world = random_scene();
-            aperture = 0.1;
+            world = test_tgv();
         }
         _ => {
             world = final_scene();
@@ -633,7 +650,7 @@ fn main() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
             let mut pixel_color: Color3 = Color3::construct(&[0.0, 0.0, 0.0]);
-            
+
             let mut handles: Vec<thread::JoinHandle<()>> = Vec::new();
             let mut recv: Vec<mpsc::Receiver<Color3>> = Vec::new();
             for _s in 0..thread_num {
