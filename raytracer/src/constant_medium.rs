@@ -28,14 +28,17 @@ impl<T1: Hittable> ConstantMedium<T1, Isotropic<SolidColor>> {
     }
 }
 impl<T1: Hittable, T2: Material> Hittable for ConstantMedium<T1, T2> {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> Option<HitRecord> {
-        let mut rec1 = self.boundary.hit(r, -INFINITY, INFINITY);
-        let mut rec2 = self.boundary.hit(r, rec1.t + 0.0001, INFINITY);
-
-        if rec1.is_none() || rec2.is_none() {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let rec1 = self.boundary.hit(r, -INFINITY, INFINITY);
+        if rec1.is_none() {
             return None;
         }
-        let rec1 = rec1.unwrap();
+        let mut rec1 = rec1.unwrap();
+        let mut rec2 = self.boundary.hit(r, rec1.t + 0.0001, INFINITY);
+
+        if rec2.is_none() {
+            return None;
+        }
         let rec2 = rec2.unwrap();
 
         if rec1.t < t_min {
@@ -45,7 +48,7 @@ impl<T1: Hittable, T2: Material> Hittable for ConstantMedium<T1, T2> {
             rec2.t = t_max;
         }
         if rec1.t >= rec2.t {
-            return false;
+            return None;
         }
         if rec1.t < 0.0 {
             rec1.t = 0.0;
@@ -56,7 +59,7 @@ impl<T1: Hittable, T2: Material> Hittable for ConstantMedium<T1, T2> {
         let hit_distance = self.neg_inv_density * random_double().ln();
 
         if hit_distance > distance_inside_boundary {
-            return false;
+            return None;
         }
 
         let mut rec = HitRecord::new();

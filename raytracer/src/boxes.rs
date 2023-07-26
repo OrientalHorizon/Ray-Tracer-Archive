@@ -10,7 +10,7 @@ use std::sync::Arc;
 pub struct Box {
     box_min: Point3,
     box_max: Point3,
-    sides: HittableList<'static>,
+    sides: HittableList,
 }
 impl Box {
     pub fn construct<T: Clone + Material + 'static>(p0: &Point3, p1: &Point3, ptr: T) -> Self {
@@ -76,7 +76,7 @@ impl Hittable for Box {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.sides.hit(r, t_min, t_max)
     }
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<HitRecord> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
         Some(Aabb::construct(&self.box_min, &self.box_max))
     }
 }

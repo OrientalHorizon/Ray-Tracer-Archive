@@ -6,6 +6,7 @@ pub trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: &Point3) -> Color3;
 }
 
+#[derive(Clone)]
 pub struct SolidColor {
     pub color_value: Color3,
 }

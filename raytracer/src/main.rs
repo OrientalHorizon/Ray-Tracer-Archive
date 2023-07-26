@@ -1,6 +1,7 @@
 use console::style;
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
+use std::ops::Deref;
 use std::sync::Arc;
 use std::{fs::File, process::exit};
 
@@ -35,7 +36,7 @@ use moving_sphere::MovingSphere;
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range, INFINITY};
 use sphere::Sphere;
-use texture::{ImageTexture, NoiseTexture};
+use texture::{ImageTexture, NoiseTexture, Texture};
 use vec3::{Color3, Point3, Vec3};
 
 use std::sync::mpsc;
@@ -439,7 +440,7 @@ pub fn write_color(pixel_color: &Color3, samples_per_pixel: u32) -> [u8; 3] {
 //     objects
 // }
 
-pub fn final_scene<'a>() -> HittableList<'a> {
+pub fn final_scene() -> HittableList {
     let mut boxes1 = HittableList::new();
     let ground = Arc::new(Lambertian::construct(&Color3::construct(&[
         0.48, 0.83, 0.53,
@@ -465,14 +466,18 @@ pub fn final_scene<'a>() -> HittableList<'a> {
     }
 
     let mut objects = HittableList::new();
-    objects.add(&BVHNode::construct2(&boxes1, 0.0, 1.0));
+    objects.add(Arc::new(BVHNode::construct2(&boxes1, 0.0, 1.0)));
 
-    let light = &DiffuseLight::construct_color(&Color3::construct(&[7.0, 7.0, 7.0]));
-    objects.add(&XzRect::construct(123.0, 423.0, 147.0, 412.0, 554.0, light));
+    let light = Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
+        7.0, 7.0, 7.0,
+    ])));
+    objects.add(Arc::new(XzRect::construct(
+        123.0, 423.0, 147.0, 412.0, 554.0, light,
+    )));
 
     let center1 = Point3::construct(&[400.0, 400.0, 200.0]);
     let center2 = center1 + Vec3::construct(&[30.0, 0.0, 0.0]);
-    let moving_sphere_mat = &Lambertian::construct(&Color3::construct(&[0.7, 0.3, 0.1]));
+    let moving_sphere_mat = Arc::new(Lambertian::construct(&Color3::construct(&[0.7, 0.3, 0.1])));
     objects.add(Arc::new(MovingSphere::construct(
         &center1,
         &center2,
@@ -482,38 +487,38 @@ pub fn final_scene<'a>() -> HittableList<'a> {
         moving_sphere_mat,
     )));
 
-    objects.add(&Sphere::construct(
+    objects.add(Arc::new(Sphere::construct(
         &Point3::construct(&[260.0, 150.0, 45.0]),
         50.0,
         Arc::new(Dielectric::construct(1.5)),
-    ));
-    objects.add(&Sphere::construct(
+    )));
+    objects.add(Arc::new(Sphere::construct(
         &Point3::construct(&[0.0, 150.0, 145.0]),
         50.0,
         Arc::new(Metal::construct(&Color3::construct(&[0.8, 0.8, 0.9]), 1.0)),
-    ));
+    )));
 
-    let boundary = Sphere::construct(
+    let boundary = Arc::new(Sphere::construct(
         &Point3::construct(&[360.0, 150.0, 145.0]),
         70.0,
-        &Dielectric::construct(1.5),
-    );
-    objects.add(&boundary.clone());
-    objects.add(&ConstantMedium::construct_color(
+        Arc::new(Dielectric::construct(1.5)),
+    ));
+    objects.add(boundary.clone());
+    objects.add(Arc::new(ConstantMedium::construct_color(
         boundary,
         0.2,
         &Color3::construct(&[0.2, 0.4, 0.9]),
-    ));
-    let boundary = &Sphere::construct(
+    )));
+    let boundary = Arc::new(Sphere::construct(
         &Point3::construct(&[0.0, 0.0, 0.0]),
         5000.0,
-        &Dielectric::construct(1.5),
-    );
-    objects.add(&ConstantMedium::construct_color(
+        Arc::new(Dielectric::construct(1.5)),
+    ));
+    objects.add(Arc::new(ConstantMedium::construct_color(
         boundary,
         0.0001,
         &Color3::construct(&[1.0, 1.0, 1.0]),
-    ));
+    )));
 
     let img = image::open("earthmap.jpg").expect("Failed to open image");
     let width: u32 = img.width();
@@ -526,39 +531,41 @@ pub fn final_scene<'a>() -> HittableList<'a> {
         data.push(g);
         data.push(b);
     }
-    let earth_texture = ImageTexture::construct(&data, width, height);
-    let earth_surface = Lambertian::construct_texture(&earth_texture);
+    let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::construct(&data, width, height));
+    let earth_surface = Arc::new(Lambertian::construct_texture(earth_texture));
     let globe = Arc::new(Sphere::construct(
         &Point3::construct(&[400.0, 200.0, 400.0]),
         100.0,
         earth_surface,
     ));
-    objects.add(&globe);
-    let pertext = NoiseTexture::construct(0.1);
-    objects.add(&Sphere::construct(
+    objects.add(globe);
+    let pertext = Arc::new(NoiseTexture::construct(0.1));
+    objects.add(Arc::new(Sphere::construct(
         &Point3::construct(&[220.0, 280.0, 300.0]),
         80.0,
-        Lambertian::construct_texture(&pertext),
-    ));
+        Arc::new(Lambertian::construct_texture(pertext.deref())),
+    )));
 
     let mut boxes2 = HittableList::new();
-    let white = Lambertian::construct(&Color3::construct(&[0.73, 0.73, 0.73]));
+    let white: Arc<dyn Material> = Arc::new(Lambertian::construct(&Color3::construct(&[
+        0.73, 0.73, 0.73,
+    ])));
     let ns: u32 = 1000;
     for _j in 0..ns {
-        boxes2.add(&Sphere::construct(
+        boxes2.add(Arc::new(Sphere::construct(
             &Point3::random_range(0.0, 165.0),
             10.0,
             white.clone(),
-        ));
+        )));
     }
 
-    objects.add(&Translate::construct(
+    objects.add(Arc::new(Translate::construct(
         Arc::new(RotateY::construct(
             &BVHNode::construct2(&boxes2, 0.0, 1.0),
             15.0,
         )),
         &Vec3::construct(&[-100.0, 270.0, 395.0]),
-    ));
+    )));
 
     objects
 }

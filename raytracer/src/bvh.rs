@@ -3,15 +3,16 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::hittable_list::HittableList;
 use crate::ray::Ray;
 use std::cmp::Ordering;
+use std::sync::Arc;
 use std::vec::Vec;
 
-pub struct BVHNode<'a> {
-    left: &'a dyn Hittable,
-    right: &'a dyn Hittable,
+pub struct BVHNode {
+    left: Arc<dyn Hittable>,
+    right: Arc<dyn Hittable>,
     aabb: Aabb,
 }
 
-pub fn box_compare<'a>(a: &'a dyn Hittable, b: &'a dyn Hittable, axis: u32) -> Ordering {
+pub fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: u32) -> Ordering {
     let box_a = a.bounding_box(0.0, 0.0);
     let box_b = b.bounding_box(0.0, 0.0);
     if box_a.is_none() || box_b.is_none() {
@@ -53,21 +54,21 @@ pub fn box_compare<'a>(a: &'a dyn Hittable, b: &'a dyn Hittable, axis: u32) -> O
         _ => panic!("Invalid axis"),
     }
 }
-pub fn box_x_compare<'a>(a: &'a dyn Hittable, b: &'a dyn Hittable) -> Ordering {
+pub fn box_x_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
     box_compare(a, b, 0)
 }
-pub fn box_y_compare<'a>(a: &'a dyn Hittable, b: &'a dyn Hittable) -> Ordering {
+pub fn box_y_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
     box_compare(a, b, 1)
 }
-pub fn box_z_compare<'a>(a: &'a dyn Hittable, b: &'a dyn Hittable) -> Ordering {
+pub fn box_z_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
     box_compare(a, b, 2)
 }
 
-impl<'a> BVHNode<'a> {
-    pub fn new(left: &'a dyn Hittable, right: &'a dyn Hittable, aabb: &Aabb) -> Self {
+impl BVHNode {
+    pub fn new(left: Arc<dyn Hittable>, right: Arc<dyn Hittable>, aabb: &Aabb) -> Self {
         Self {
-            left,
-            right,
+            left: Arc::clone(&left),
+            right: Arc::clone(&right),
             aabb: *aabb,
         }
     }
@@ -75,7 +76,7 @@ impl<'a> BVHNode<'a> {
         Self::construct(&list.objects, 0, list.objects.len() as u32, time0, time1)
     }
     pub fn construct(
-        src_objects: &[&'a dyn Hittable],
+        src_objects: &[Arc<dyn Hittable>],
         start: u32,
         end: u32,
         time0: f64,
@@ -83,7 +84,7 @@ impl<'a> BVHNode<'a> {
     ) -> Self {
         let start = start as usize;
         let end = end as usize;
-        let mut objects: Vec<&'a dyn Hittable> = src_objects.to_vec();
+        let mut objects: Vec<Arc<dyn Hittable>> = src_objects.to_vec();
         let axis = rand::random::<u32>() % 3u32;
         let comparator = match axis {
             0 => box_x_compare,
@@ -91,11 +92,11 @@ impl<'a> BVHNode<'a> {
             _ => box_z_compare,
         };
         let object_span: usize = end - start;
-        let left: &'a dyn Hittable;
-        let right: &'a dyn Hittable;
+        let left: Arc<dyn Hittable>;
+        let right: Arc<dyn Hittable>;
         if object_span == 1 {
-            left = objects[start];
-            right = objects[start];
+            left = Arc::clone(&objects[start]);
+            right = Arc::clone(&objects[start]);
         } else if object_span == 2 {
             if comparator(&objects[start as usize], &objects[start + 1]) == Ordering::Less {
                 left = objects[start].clone();
@@ -107,8 +108,16 @@ impl<'a> BVHNode<'a> {
         } else {
             objects.sort_by(comparator);
             let mid = start + object_span / 2;
-            left = &BVHNode::construct(&objects, start as u32, mid as u32, time0, time1);
-            right = &BVHNode::construct(&objects, mid as u32, end as u32, time0, time1);
+            left = Arc::new(BVHNode::construct(
+                &objects,
+                start as u32,
+                mid as u32,
+                time0,
+                time1,
+            ));
+            right = Arc::new(BVHNode::construct(
+                &objects, mid as u32, end as u32, time0, time1,
+            ));
         }
         let box_left = left.bounding_box(time0, time1);
         let box_right = right.bounding_box(time0, time1);
@@ -122,7 +131,7 @@ impl<'a> BVHNode<'a> {
     }
 }
 
-impl<'a> Hittable for BVHNode<'a> {
+impl Hittable for BVHNode {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         if !self.aabb.hit(r, t_min, t_max) {
             return None;
@@ -134,7 +143,7 @@ impl<'a> Hittable for BVHNode<'a> {
             r,
             t_min,
             if hit_left.is_some() {
-                hit_left.t
+                hit_left.unwrap().t
             } else {
                 t_max
             },
