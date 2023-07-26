@@ -7,7 +7,12 @@ use crate::triangle::Triangle;
 use crate::vec3::{Point3, Vec3};
 use std::sync::Arc;
 
-pub fn load_objects(file_name: &str, mat_ptr: Arc<dyn Material>, scale: f64) -> HittableList {
+pub fn load_objects(
+    file_name: &str,
+    mat_ptr: Arc<dyn Material>,
+    scale: f64,
+    center: &mut Point3,
+) -> HittableList {
     let (models, _) = load_obj(
         file_name,
         &LoadOptions {
@@ -18,6 +23,8 @@ pub fn load_objects(file_name: &str, mat_ptr: Arc<dyn Material>, scale: f64) -> 
     )
     .expect("Failed .obj");
     let mut list = HittableList::new();
+    *center = Point3::construct(&[0.0, 0.0, 0.0]);
+    let mut cnt: f64 = 0.0;
     for m in models.iter() {
         let ind = &m.mesh.indices;
         // 三角形顶点下标
@@ -32,6 +39,8 @@ pub fn load_objects(file_name: &str, mat_ptr: Arc<dyn Material>, scale: f64) -> 
                 p.e[j] = pos[(i * 3 + j) as usize] as f64 * scale;
             }
             points.push(p);
+            *center += p;
+            cnt = cnt + 1.0;
         }
 
         for i in 0..ind.len() / 3 {
@@ -43,5 +52,6 @@ pub fn load_objects(file_name: &str, mat_ptr: Arc<dyn Material>, scale: f64) -> 
         }
         list.add(Arc::new(BVHNode::construct2(&triangles, 0.0, 1.0)));
     }
+    *center /= cnt;
     list
 }

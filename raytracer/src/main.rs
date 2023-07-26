@@ -573,14 +573,18 @@ pub fn final_scene() -> HittableList {
 }
 pub fn test_tgv() -> HittableList {
     let mut objects = cornell_box();
+    let mut center = Point3::new();
     let getlist = load_objects(
         "objects/cat.obj",
         Arc::new(Metal::construct(&Color3::construct(&[0.7, 0.7, 0.7]), 0.2)),
         0.5,
+        &mut center,
     );
+    println!("center: {:?}", center);
+    let displacement = Point3::construct(&[278.0, 85.0, 0.0]) - center;
     objects.add(Arc::new(Translate::construct(
         Arc::new(BVHNode::construct2(&getlist, 0.0, 1.0)),
-        &Vec3::construct(&[200.0, 0.0, 0.0]),
+        &displacement,
     )));
     objects
 }
@@ -596,7 +600,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 1.0;
     const IMAGE_WIDTH: u32 = 400;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 76;
+    const SAMPLES_PER_PIXEL: u32 = 18 * 4;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -645,7 +649,7 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 19;
+    let thread_num: u32 = 18;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
