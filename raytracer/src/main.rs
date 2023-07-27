@@ -574,17 +574,22 @@ pub fn final_scene() -> HittableList {
 pub fn test_tgv() -> HittableList {
     let mut objects = cornell_box();
     let mut center = Point3::new();
-    let getlist = load_objects(
-        "objects/cat.obj",
-        Arc::new(Metal::construct(&Color3::construct(&[0.7, 0.7, 0.7]), 0.2)),
-        0.5,
-        &mut center,
-    );
-    println!("center: {:?}", center);
-    let displacement = Point3::construct(&[278.0, 85.0, 0.0]) - center;
+    let albedo = Color3::construct(&[0.7, 0.7, 0.7]);
+    let fuzz = 0.35;
+    let mat = Metal::construct(&albedo, fuzz);
+    let translate1 = Arc::new(BVHNode::construct2(
+        &load_objects(
+            "objects/spot_triangulated_good.obj",
+            Arc::new(mat),
+            0.5,
+            &mut center,
+        ),
+        0.,
+        1.,
+    ));
     objects.add(Arc::new(Translate::construct(
-        Arc::new(BVHNode::construct2(&getlist, 0.0, 1.0)),
-        &displacement,
+        translate1,
+        &(Vec3::construct(&[278.0, 80.0, 0.0]) - center),
     )));
     objects
 }
@@ -592,15 +597,15 @@ pub fn test_tgv() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/haha.jpg");
+    let path = std::path::Path::new("output/fuck.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
     // Image
     const ASPECT_RATIO: f64 = 1.0;
-    const IMAGE_WIDTH: u32 = 400;
+    const IMAGE_WIDTH: u32 = 200;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES_PER_PIXEL: u32 = 18 * 4;
+    const SAMPLES_PER_PIXEL: u32 = 18 * 6;
     const MAX_DEPTH: i32 = 50;
 
     // World

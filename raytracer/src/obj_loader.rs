@@ -25,6 +25,7 @@ pub fn load_objects(
     let mut list = HittableList::new();
     *center = Point3::construct(&[0.0, 0.0, 0.0]);
     let mut cnt: f64 = 0.0;
+    let mut tri = 0;
     for m in models.iter() {
         let ind = &m.mesh.indices;
         // 三角形顶点下标
@@ -44,14 +45,29 @@ pub fn load_objects(
         }
 
         for i in 0..ind.len() / 3 {
-            let mut v: Vec<Point3> = Vec::new();
-            for j in 0..3 {
-                v.push(points[ind[(i * 3 + j) as usize] as usize]);
-            }
-            triangles.add(Arc::new(Triangle::construct(&v, Arc::clone(&mat_ptr))));
+            tri = tri + 1;
+            triangles.add(Arc::new(Triangle::construct(
+                &[
+                    points[ind[i * 3] as usize],
+                    points[ind[i * 3 + 1] as usize],
+                    points[ind[i * 3 + 2] as usize],
+                ],
+                Arc::clone(&mat_ptr),
+            )));
+            let a = points[ind[i * 3] as usize];
+            let b = points[ind[i * 3 + 1] as usize];
+            let c = points[ind[i * 3 + 2] as usize];
+            // println!("{} {} {}", a.x(), a.y(), a.z());
+            // println!("{} {} {}", b.x(), b.y(), b.z());
+            // println!("{} {} {}", c.x(), c.y(), c.z());
         }
         list.add(Arc::new(BVHNode::construct2(&triangles, 0.0, 1.0)));
     }
+    println!("point = {}, tri = {}", cnt, tri);
     *center /= cnt;
     list
 }
+
+// pub fn obj_mtl_loader(file_name: ) -> HittableList {
+
+// }
