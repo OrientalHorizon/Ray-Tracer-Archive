@@ -71,8 +71,6 @@ impl Hittable for Translate {
             return false;
         }
         rec.p += self.offset;
-        let norm = rec.normal;
-        rec.set_face_normal(&moved_r, &norm);
         true
     }
     fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
@@ -101,7 +99,7 @@ impl RotateY {
         let cos_theta = radians.cos();
         let mut bbox = Aabb::new();
         let hasbox = p.bounding_box(0.0, 1.0, &mut bbox);
-
+        println!("bbox: {:?}", bbox);
         let mut mini = Point3::construct(&[INFINITY, INFINITY, INFINITY]);
         let mut maxi = Point3::construct(&[-INFINITY, -INFINITY, -INFINITY]);
 
@@ -161,7 +159,7 @@ impl Hittable for RotateY {
         normal.e[2] = -self.sin_theta * rec.normal.e[0] + self.cos_theta * rec.normal.e[2];
 
         rec.p = p;
-        rec.set_face_normal(&rotated_r, &normal);
+        rec.normal = normal;
 
         true
     }

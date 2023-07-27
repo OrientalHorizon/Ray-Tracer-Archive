@@ -572,25 +572,23 @@ pub fn final_scene() -> HittableList {
     objects
 }
 pub fn test_tgv() -> HittableList {
-    let mut objects = cornell_box();
+    let mut objects = HittableList::new();
     let mut center = Point3::new();
-    let albedo = Color3::construct(&[0.7, 0.7, 0.7]);
-    let fuzz = 0.35;
-    let mat = Metal::construct(&albedo, fuzz);
-    let translate1 = Arc::new(BVHNode::construct2(
-        &load_objects(
-            "objects/spot_triangulated_good.obj",
-            Arc::new(mat),
-            0.5,
-            &mut center,
-        ),
-        0.,
-        1.,
+    let albedo = Color3::construct(&[1.0, 0.0, 0.0]);
+    // let fuzz = 0.25;
+    let mat = Lambertian::construct(&albedo);
+    let translate1 = Arc::new(load_objects(
+        "objects/cat.obj",
+        Arc::new(mat),
+        0.5 * 80. / 80.,
+        &mut center,
     ));
-    objects.add(Arc::new(Translate::construct(
+    let pre_rotate = Arc::new(Translate::construct(
         translate1,
-        &(Vec3::construct(&[278.0, 80.0, 0.0]) - center),
-    )));
+        &(Vec3::construct(&[278.0, 278.0, 100.0]) - center),
+    ));
+    let rotate = Arc::new(RotateY::construct(pre_rotate, 45.0));
+    objects.add(rotate);
     objects
 }
 
@@ -603,7 +601,7 @@ fn main() {
 
     // Image
     const ASPECT_RATIO: f64 = 1.0;
-    const IMAGE_WIDTH: u32 = 200;
+    const IMAGE_WIDTH: u32 = 200 / 2;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
     const SAMPLES_PER_PIXEL: u32 = 18 * 6;
     const MAX_DEPTH: i32 = 50;
@@ -617,7 +615,7 @@ fn main() {
     let lookat = Point3::construct(&[278.0, 278.0, 0.0]);
     let vfov = 40.0;
     let mut aperture = 0.0;
-    let background = Color3::construct(&[0.0, 0.0, 0.0]);
+    let background = Color3::construct(&[0.8, 0.8, 1.]); //Color3::construct(&[0.0, 0.0, 0.0]);
     let mth = 1;
     match mth {
         1 => {
@@ -679,8 +677,13 @@ fn main() {
                         let u: f64 = (i_f64 + random_double()) / (image_width - 1) as f64;
                         let v: f64 = (j_f64 + random_double()) / (image_height - 1) as f64;
                         let r: Ray = cam.get_ray(u, v);
-                        tx.send(ray_color(&r, &background, &world, max_depth))
-                            .unwrap();
+                        let color = ray_color(&r, &background, &world, max_depth);
+                        // for _i in 0..3 {
+                        //     if color.e[_i] != color.e[_i] {
+                        //         color.e[_i] = 0.;
+                        //     }
+                        // }
+                        tx.send(color).unwrap();
                     }
                 });
                 handles.push(handle);
