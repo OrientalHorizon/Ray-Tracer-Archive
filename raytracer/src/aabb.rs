@@ -45,8 +45,8 @@ impl Aabb {
             if inv_d < 0.0 {
                 std::mem::swap(&mut t0, &mut t1);
             }
-            let t_min: f64 = if t_min > t0 { t_min } else { t0 };
-            let t_max: f64 = if t_max < t1 { t_max } else { t1 };
+            let t_min: f64 = t_min.max(t0);
+            let t_max: f64 = t_max.min(t1);
             if t_max <= t_min {
                 return false;
             }
@@ -54,7 +54,7 @@ impl Aabb {
         true
     }
 
-    pub fn surrounding_box(box0: &Self, box1: &Self) -> Self {
+    pub fn surrounding_box(box0: &Self, box1: &Self) -> Aabb {
         let small: Point3 = Point3::construct(&[
             box0.minimum().x().min(box1.minimum().x()),
             box0.minimum().y().min(box1.minimum().y()),

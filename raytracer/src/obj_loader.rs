@@ -50,14 +50,14 @@ pub fn load_objects(
             tri = tri + 1;
         }
         // objects.add(Arc::new(triangles)); // TODO
-        objects.add(Arc::new(BVHNode::construct2(&triangles, 0., 1.)));
+        objects.add(Arc::new(BVHNode::new(&triangles, 0., 1.)));
     }
     println!("{}", tri);
     *center /= cnt as f64;
-    if objects.objects.len() < 3 {
-        return objects;
-    }
+    // if objects.objects.len() < 4 {
+    //     return objects;
+    // }
     let mut list = HittableList::new();
-    list.add(Arc::new(BVHNode::construct2(&objects, 0., 1.)));
+    list.add(Arc::new(BVHNode::new(&objects, 0., 1.)));
     list
 }

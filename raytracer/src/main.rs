@@ -9,7 +9,7 @@ use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
 
 use aarect::{XyRect, XzRect, YzRect};
-use boxes::Box;
+use boxes::Box_;
 use bvh::BVHNode;
 use camera::Camera;
 use constant_medium::ConstantMedium;
@@ -406,7 +406,7 @@ pub fn cornell_smoke() -> HittableList {
         white.clone(),
     )));
 
-    let mut box1: Arc<dyn Hittable> = Arc::new(Box::construct(
+    let mut box1: Arc<dyn Hittable> = Arc::new(Box_::construct(
         &Point3::construct(&[0.0, 0.0, 0.0]),
         &Point3::construct(&[165.0, 330.0, 165.0]),
         white.clone(),
@@ -417,7 +417,7 @@ pub fn cornell_smoke() -> HittableList {
         &Vec3::construct(&[265.0, 0.0, 295.0]),
     ));
 
-    let mut box2: Arc<dyn Hittable> = Arc::new(Box::construct(
+    let mut box2: Arc<dyn Hittable> = Arc::new(Box_::construct(
         &Point3::construct(&[0.0, 0.0, 0.0]),
         &Point3::construct(&[165.0, 165.0, 165.0]),
         white,
@@ -459,7 +459,7 @@ pub fn final_scene() -> HittableList {
             let y1 = random_double_range(1.0, 101.0);
             let z1 = z0 + w;
 
-            boxes1.add(Arc::new(Box::construct(
+            boxes1.add(Arc::new(Box_::construct(
                 &Point3::construct(&[x0, y0, z0]),
                 &Point3::construct(&[x1, y1, z1]),
                 ground.clone(),
@@ -468,7 +468,7 @@ pub fn final_scene() -> HittableList {
     }
 
     let mut objects = HittableList::new();
-    objects.add(Arc::new(BVHNode::construct2(&boxes1, 0.0, 1.0)));
+    objects.add(Arc::new(BVHNode::new(&boxes1, 0.0, 1.0)));
 
     let light = Arc::new(DiffuseLight::construct_color(&Color3::construct(&[
         7.0, 7.0, 7.0,
@@ -563,7 +563,7 @@ pub fn final_scene() -> HittableList {
 
     objects.add(Arc::new(Translate::construct(
         Arc::new(RotateY::construct(
-            Arc::new(BVHNode::construct2(&boxes2, 0.0, 1.0)),
+            Arc::new(BVHNode::new(&boxes2, 0.0, 1.0)),
             15.0,
         )),
         &Vec3::construct(&[-100.0, 270.0, 395.0]),
@@ -652,7 +652,7 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 18;
+    let thread_num: u32 = 1;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);

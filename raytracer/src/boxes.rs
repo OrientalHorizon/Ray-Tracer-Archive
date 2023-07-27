@@ -7,12 +7,12 @@ use crate::ray::Ray;
 use crate::vec3::Point3;
 use std::sync::Arc;
 
-pub struct Box {
+pub struct Box_ {
     box_min: Point3,
     box_max: Point3,
     sides: HittableList,
 }
-impl Box {
+impl Box_ {
     pub fn construct(p0: &Point3, p1: &Point3, ptr: Arc<dyn Material>) -> Self {
         let mut sides = HittableList::new();
         sides.add(Arc::new(XyRect::construct(
@@ -72,7 +72,7 @@ impl Box {
         }
     }
 }
-impl Hittable for Box {
+impl Hittable for Box_ {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         self.sides.hit(r, t_min, t_max, rec)
     }

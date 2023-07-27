@@ -1,147 +1,109 @@
-use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
-use crate::hittable_list::HittableList;
-use crate::ray::Ray;
-use std::cmp::Ordering;
+use crate::rt_weekend::random_int;
+use crate::{aabb::Aabb, hittable_list::HittableList};
 use std::sync::Arc;
-use std::vec::Vec;
 
 pub struct BVHNode {
-    left: Arc<dyn Hittable>,
-    right: Arc<dyn Hittable>,
-    aabb: Aabb,
-}
-
-pub fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: u32) -> Ordering {
-    let mut box_a = Aabb::new();
-    let mut box_b = Aabb::new();
-    if !a.bounding_box(0.0, 0.0, &mut box_a) || !b.bounding_box(0.0, 0.0, &mut box_b) {
-        eprintln!("No bounding box in BVHNode constructor.");
-    }
-    match axis {
-        0 => {
-            if box_a.minimum().x() < box_b.minimum().x() {
-                Ordering::Less
-            } else if box_a.minimum().x() < box_b.minimum().x() {
-                Ordering::Equal
-            } else {
-                Ordering::Greater
-            }
-        }
-
-        1 => {
-            if box_a.minimum().y() < box_b.minimum().y() {
-                Ordering::Less
-            } else if box_a.minimum().y() < box_b.minimum().y() {
-                Ordering::Equal
-            } else {
-                Ordering::Greater
-            }
-        }
-
-        2 => {
-            if box_a.minimum().z() < box_b.minimum().z() {
-                Ordering::Less
-            } else if box_a.minimum().z() < box_b.minimum().z() {
-                Ordering::Equal
-            } else {
-                Ordering::Greater
-            }
-        }
-
-        _ => panic!("Invalid axis"),
-    }
-}
-pub fn box_x_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
-    box_compare(a, b, 0)
-}
-pub fn box_y_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
-    box_compare(a, b, 1)
-}
-pub fn box_z_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
-    box_compare(a, b, 2)
-}
+    pub left: Option<Arc<dyn Hittable>>,
+    pub right: Option<Arc<dyn Hittable>>,
+    pub box_: Aabb,
+} // bounding volume hierachy
 
 impl BVHNode {
-    pub fn new(left: Arc<dyn Hittable>, right: Arc<dyn Hittable>, aabb: &Aabb) -> Self {
-        Self {
-            left: Arc::clone(&left),
-            right: Arc::clone(&right),
-            aabb: *aabb,
+    pub fn new(list: &HittableList, time0: f64, time1: f64) -> Self {
+        Self::construct(&list.objects, time0, time1)
+    }
+    pub fn construct(objects: &Vec<Arc<dyn Hittable>>, time0: f64, time1: f64) -> Self {
+        // println!("{}", objects.len());
+        let mut src_objects = objects.clone();
+        let left;
+        let right;
+        let axis = random_int(0, 2) as usize;
+        let obj_len = objects.len();
+
+        if obj_len == 0 {
+            panic!("BVH: Empty list");
         }
-    }
-    pub fn construct2(list: &HittableList, time0: f64, time1: f64) -> Self {
-        Self::construct(&list.objects, 0, list.objects.len() as u32, time0, time1)
-    }
-    pub fn construct(
-        src_objects: &[Arc<dyn Hittable>],
-        start: u32,
-        end: u32,
-        time0: f64,
-        time1: f64,
-    ) -> Self {
-        let start = start as usize;
-        let end = end as usize;
-        let mut objects: Vec<Arc<dyn Hittable>> = src_objects.to_vec();
-        let axis = rand::random::<u32>() % 3u32;
-        let comparator = match axis {
-            0 => box_x_compare,
-            1 => box_y_compare,
-            _ => box_z_compare,
-        };
-        let object_span: usize = end - start;
-        let left: Arc<dyn Hittable>;
-        let right: Arc<dyn Hittable>;
-        if object_span == 1 {
-            left = Arc::clone(&objects[start]);
-            right = Arc::clone(&objects[start]);
-        } else if object_span == 2 {
-            if comparator(&objects[start as usize], &objects[start + 1]) == Ordering::Less {
-                left = objects[start].clone();
-                right = objects[start + 1].clone();
-            } else {
-                left = objects[start + 1].clone();
-                right = objects[start].clone();
-            }
+
+        if obj_len == 1 {
+            left = Some(src_objects.remove(0));
+            // pop, 往左移
+            right = None;
         } else {
-            objects.sort_by(comparator);
-            let mid = start + object_span / 2;
-            left = Arc::new(BVHNode::construct(
-                &objects,
-                start as u32,
-                mid as u32,
-                time0,
-                time1,
-            ));
-            right = Arc::new(BVHNode::construct(
-                &objects, mid as u32, end as u32, time0, time1,
-            ));
+            src_objects.sort_unstable_by(|a, b| {
+                let mut aabb_a = Aabb::new();
+                let mut aabb_b = Aabb::new();
+                let bool_a = a.bounding_box(time0, time1, &mut aabb_a);
+                let bool_b = b.bounding_box(time0, time1, &mut aabb_b);
+                if bool_a == false || bool_b == false {
+                    panic!("fuck you");
+                }
+                let min_a = aabb_a.minimum().e[axis];
+                let min_b = aabb_b.minimum().e[axis];
+                f64::partial_cmp(&min_a, &min_b).unwrap()
+            });
+            if obj_len == 2 {
+                right = Some(src_objects.remove(1));
+                left = Some(src_objects.remove(0));
+            } else {
+                let objects2 = src_objects.split_off(obj_len / 2);
+                left = Some(Arc::new(Self::construct(&src_objects, time0, time1)));
+                right = Some(Arc::new(Self::construct(&objects2, time0, time1)));
+            }
         }
         let mut box_left = Aabb::new();
-        let mut box_right = Aabb::new();
-        if !left.bounding_box(time0, time1, &mut box_left)
-            || !right.bounding_box(time0, time1, &mut box_right)
-        {
-            eprintln!("No bounding box in BVHNode constructor.");
-        }
-        let aabb = Aabb::surrounding_box(&box_left, &box_right);
-        Self::new(left, right, &aabb)
+        left.as_ref()
+            .unwrap()
+            .bounding_box(time0, time1, &mut box_left);
+        let box_ = if right.is_some() {
+            let mut box_right = Aabb::new();
+            right
+                .as_ref()
+                .unwrap()
+                .bounding_box(time0, time1, &mut box_right);
+            Aabb::surrounding_box(&box_left, &box_right)
+        } else {
+            box_left
+        };
+        Self { left, right, box_ }
     }
 }
 
 impl Hittable for BVHNode {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        if !self.aabb.hit(r, t_min, t_max) {
+    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
+        *output_box = self.box_;
+        true
+    }
+    fn hit(&self, r: &crate::ray::Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        if !self.box_.hit(r, t_min, t_max) {
             return false;
         }
-        let hit_left = self.left.hit(r, t_min, t_max, rec);
-        let hit_right = self
-            .right
-            .hit(r, t_min, if hit_left { rec.t } else { t_max }, rec);
-        hit_left || hit_right
-    }
-    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut Aabb) -> bool {
-        *output_box = self.aabb;
-        true
+        // println!("BVH: hit");
+        let mut t_max_mut = t_max;
+        *rec = HitRecord::new();
+        let mut tmp_rec = HitRecord::new();
+        let mut ret = false;
+        if self
+            .left
+            .as_ref()
+            .unwrap()
+            .hit(r, t_min, t_max, &mut tmp_rec)
+        {
+            t_max_mut = tmp_rec.t;
+            *rec = tmp_rec.clone();
+            ret = true;
+        }
+        if self.right.is_some() {
+            if self
+                .right
+                .as_ref()
+                .unwrap()
+                .hit(r, t_min, t_max_mut, &mut tmp_rec)
+            {
+                *rec = tmp_rec;
+                ret = true;
+            }
+        }
+        ret
     }
 }

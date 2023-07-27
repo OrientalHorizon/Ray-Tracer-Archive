@@ -2,9 +2,9 @@ use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
-use crate::rt_weekend::{random_double, random_double_range};
+// use crate::rt_weekend::{random_double, random_double_range};
 use crate::vec3::*;
-use std::f64::INFINITY;
+// use std::f64::INFINITY;
 use std::sync::Arc;
 
 #[derive(Clone)]
