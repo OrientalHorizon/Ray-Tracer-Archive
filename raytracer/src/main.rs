@@ -18,6 +18,7 @@ use hittable_list::HittableList;
 use material::DiffuseLight;
 use material::{Dielectric, Lambertian, Material, Metal};
 use moving_sphere::MovingSphere;
+use obj_loader::load_new;
 use obj_loader::load_objects;
 use ray::Ray;
 use rt_weekend::{random_double, random_double_range};
@@ -211,18 +212,7 @@ pub fn two_perlin_spheres() -> HittableList {
 }
 
 pub fn earth() -> HittableList {
-    let img = image::open("earthmap.jpg").expect("Failed to open image");
-    let width: u32 = img.width();
-    let height: u32 = img.height();
-    let mut data: Vec<u8> = Vec::new();
-    for (_x, _y, pixel) in img.pixels() {
-        let rgba = pixel.0;
-        let (r, g, b) = (rgba[0], rgba[1], rgba[2]);
-        data.push(r);
-        data.push(g);
-        data.push(b);
-    }
-    let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::construct(&data, width, height));
+    let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::construct("earthmap.jpg"));
     let earth_surface = Arc::new(Lambertian::construct_texture(earth_texture));
     let globe = Arc::new(Sphere::construct(
         &Point3::construct(&[0.0, 0.0, 0.0]),
@@ -522,18 +512,7 @@ pub fn final_scene() -> HittableList {
         &Color3::construct(&[1.0, 1.0, 1.0]),
     )));
 
-    let img = image::open("earthmap.jpg").expect("Failed to open image");
-    let width: u32 = img.width();
-    let height: u32 = img.height();
-    let mut data: Vec<u8> = Vec::new();
-    for (_x, _y, pixel) in img.pixels() {
-        let rgba = pixel.0;
-        let (r, g, b) = (rgba[0], rgba[1], rgba[2]);
-        data.push(r);
-        data.push(g);
-        data.push(b);
-    }
-    let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::construct(&data, width, height));
+    let earth_texture: Arc<dyn Texture> = Arc::new(ImageTexture::construct("earthmap.jpg"));
     let earth_surface = Arc::new(Lambertian::construct_texture(earth_texture));
     let globe = Arc::new(Sphere::construct(
         &Point3::construct(&[400.0, 200.0, 400.0]),
@@ -577,10 +556,10 @@ pub fn test_tgv() -> HittableList {
     let albedo = Color3::construct(&[1.0, 0.0, 0.0]);
     // let fuzz = 0.25;
     let mat = Lambertian::construct(&albedo);
-    let translate1 = Arc::new(load_objects(
-        "objects/cat.obj",
-        Arc::new(mat),
-        0.5 * 80. / 80.,
+    let translate1 = Arc::new(load_new(
+        "cat",
+        0.5,
+        &albedo,
         &mut center,
     ));
     let pre_rotate = Arc::new(Translate::construct(

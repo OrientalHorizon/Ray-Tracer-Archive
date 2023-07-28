@@ -16,10 +16,23 @@ pub struct Triangle {
     //pc perpendicular to ac with length of ac/2*area
     pub bbox: Aabb,
     pub mat: Arc<dyn Material>,
+
+    // texture coord.
+    pub uv_a: (f64, f64),
+    pub uv_ab: (f64, f64),
+    pub uv_ac: (f64, f64),
 }
 
 impl Triangle {
-    pub fn new(a: &Point3, b: &Point3, c: &Point3, mat: Arc<dyn Material>) -> Self {
+    pub fn new(
+        a: &Point3,
+        b: &Point3,
+        c: &Point3,
+        mat: Arc<dyn Material>,
+        (ua, va): (f64, f64),
+        (ub, vb): (f64, f64),
+        (uc, vc): (f64, f64),
+    ) -> Self {
         let ab = *b - *a;
         let ac = *c - *a;
         let normal = cross(&ab, &ac);
@@ -38,25 +51,16 @@ impl Triangle {
             pc: cross(&ac, &n) / area2,
             mat,
             bbox: Aabb::construct(&min, &max),
+            uv_a: (ua, va),
+            uv_ab: (ub - ua, vb - va),
+            uv_ac: (uc - ua, vc - va),
         }
     }
-
-    // pub fn area(&self) -> f64 {
-    //     cross(&self.pb, &self.pc).length() / 2.0
-    // }
-
-    // pub fn get_edges(&self) -> (Vec3, Vec3) {
-    //     let area2 = self.area() * 2.0;
-    //     let ab = cross(&self.pb, &self.n) * area2;
-    //     let ac = cross(&self.n, &self.pc) * area2;
-
-    //     let normal = cross(&ab, &ac);
-    //     if normal.unit() == self.n {
-    //         (ab, ac)
-    //     } else {
-    //         panic!("triangle get edges error")
-    //     }
-    // }
+    pub fn to_texture_coord(&self, u0: f64, v0: f64) -> (f64, f64) {
+        let u = self.uv_a.0 + self.uv_ab.0 * u0 + self.uv_ac.0 * v0;
+        let v = self.uv_a.1 + self.uv_ab.1 * u0 + self.uv_ac.1 * v0;
+        (u, v)
+    }
 }
 
 impl Hittable for Triangle {
@@ -71,13 +75,14 @@ impl Hittable for Triangle {
         let u = dot(&ap, &self.pc);
         let v = dot(&ap, &self.pb);
         // AP = uAB + vAC
-        if u >= 0. && v >= 0. && u + v <= 1. {
+        if u >= 0.0 && v >= 0.0 && u + v <= 1.0 {
+            let (x, y) = self.to_texture_coord(u, v);
             *rec = HitRecord {
                 p,
                 normal: self.n,
                 t,
-                u,
-                v,
+                u: x,
+                v: y,
                 front_face: true, //set it true if you want to emit light!!!
                 mat_ptr: Some(Arc::clone(&self.mat)),
             };

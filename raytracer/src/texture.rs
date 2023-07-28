@@ -1,6 +1,8 @@
 use crate::perlin::Perlin;
 use crate::rt_weekend::clamp;
 use crate::vec3::{Color3, Point3};
+use image::GenericImageView;
+use image::{ImageBuffer, RgbImage};
 use std::sync::Arc;
 
 pub trait Texture: Send + Sync {
@@ -91,8 +93,9 @@ impl Texture for NoiseTexture {
     }
 }
 
+#[derive(Clone)]
 pub struct ImageTexture {
-    pub data: Vec<u8>,
+    pub data: Arc<Vec<u8>>,
     pub width: u32,
     pub height: u32,
     pub bytes_per_scanline: u32,
@@ -100,9 +103,29 @@ pub struct ImageTexture {
 impl ImageTexture {
     pub const BYTES_PER_PIXEL: u32 = 3;
 
-    pub fn construct(data: &[u8], width: u32, height: u32) -> Self {
+    pub fn new() -> Self {
         Self {
-            data: data.to_owned(),
+            data: Arc::new(Vec::new()),
+            width: 0,
+            height: 0,
+            bytes_per_scanline: 0,
+        }
+    }
+
+    pub fn construct(path: &str) -> Self {
+        let img = image::open(path).expect("Failed to open image");
+        let width: u32 = img.width();
+        let height: u32 = img.height();
+        let mut data: Vec<u8> = Vec::new();
+        for (_x, _y, pixel) in img.pixels() {
+            let rgba = pixel.0;
+            let (r, g, b) = (rgba[0], rgba[1], rgba[2]);
+            data.push(r);
+            data.push(g);
+            data.push(b);
+        }
+        Self {
+            data: Arc::new(data),
             width,
             height,
             bytes_per_scanline: width * Self::BYTES_PER_PIXEL,
@@ -111,7 +134,7 @@ impl ImageTexture {
 }
 impl Texture for ImageTexture {
     fn value(&self, mut u: f64, mut v: f64, _p: &Point3) -> Color3 {
-        if self.data.is_empty() {
+        if self.data.as_ref().is_empty() {
             return Color3::construct(&[0.0, 1.0, 1.0]);
         }
 
