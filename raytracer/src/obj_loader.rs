@@ -13,8 +13,10 @@ pub fn load_objects(
     scale: f64,
     center: &mut Point3,
 ) -> HittableList {
+    let pre_path = format!("objects/{}/", pathname);
+    let obj_path = format!("{}{}.obj", pre_path, pathname);
     let (models, _) = load_obj(
-        pathname,
+        obj_path,
         &LoadOptions {
             single_index: false,
             triangulate: true,
@@ -67,9 +69,9 @@ pub fn load_objects(
     }
     println!("{}", tri);
     *center /= cnt as f64;
-    // if objects.objects.len() < 4 {
-    //     return objects;
-    // }
+    if objects.objects.len() < 4 {
+        return objects;
+    }
     let mut list = HittableList::new();
     list.add(Arc::new(BVHNode::new(&objects, 0., 1.)));
     list
@@ -160,6 +162,7 @@ pub fn load_new(project_name: &str, scale: f64, col: &Color3, center: &mut Point
         }
         objects.add(Arc::new(BVHNode::new(&triangles, 0.0, 1.0)));
     }
+    *center /= cnt as f64;
     if objects.objects.len() < 4 {
         objects
     } else {

@@ -556,12 +556,7 @@ pub fn test_tgv() -> HittableList {
     let albedo = Color3::construct(&[1.0, 0.0, 0.0]);
     // let fuzz = 0.25;
     let mat = Lambertian::construct(&albedo);
-    let translate1 = Arc::new(load_new(
-        "cat",
-        0.5,
-        &albedo,
-        &mut center,
-    ));
+    let translate1 = Arc::new(load_new("cat", 0.5 * 18.0, &albedo, &mut center));
     let pre_rotate = Arc::new(Translate::construct(
         translate1,
         &(Vec3::construct(&[278.0, 278.0, 100.0]) - center),
@@ -574,7 +569,7 @@ pub fn test_tgv() -> HittableList {
 fn main() {
     // let img =
 
-    let path = std::path::Path::new("output/fuck.jpg");
+    let path = std::path::Path::new("output/fuckyou.jpg");
     let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).expect("Cannot create all the parents");
 
@@ -631,7 +626,7 @@ fn main() {
         ProgressBar::new((IMAGE_HEIGHT * IMAGE_WIDTH) as u64)
     };
 
-    let thread_num: u32 = 1;
+    let thread_num: u32 = 18;
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
             let pixel = img.get_pixel_mut(i, IMAGE_HEIGHT - j - 1);
